@@ -1,0 +1,130 @@
+<html>
+
+<head>
+
+<style>
+body {
+	display: block;
+	background-color: #000000;
+}
+
+#raywebgl {
+	background: black;
+	border: 1px solid white;
+	position: absolute;
+	left: 50%;
+	margin-left: -512;
+}
+
+a {
+	position: absolute;
+	bottom: 0;
+	left: 50%;
+	background-color: #ffffff;
+	color: #000000;
+	width: 100px;	
+	font-size:200%;
+	cursor: pointer;
+	margin-left: -50;
+	text-align:center
+}
+</style>
+
+<title>Raycaster</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+
+<link type='text/css' href='thirdy/css/tabbedContent.css'
+	rel='stylesheet' />
+<script type="text/javascript" src="thirdy/jquery/jquery.min.js"></script>
+<script type="text/javascript" src="thirdy/js/tabbedContent.js"></script>
+<script type="text/javascript" src="thirdy/js/jcanvas.min.js"></script>
+<script type="text/javascript" src="thirdy/glMatrix/glMatrix.min.js"></script>
+
+<script type="text/javascript" src="webgl-utils.js"></script>
+<script type="text/javascript" src="gpu/gl_texture_2d.js"></script>
+<script type="text/javascript" src="gpu/gpu_program.js"></script>
+<script type="text/javascript" src="gpu/gpu_shader.js"></script>
+<script type="text/javascript" src="gpu/fbo.js"></script>
+<script type="text/javascript" src="gpu/light_source.js"></script>
+<script type="text/javascript" src="transferFunction/color.js"></script>
+<script type="text/javascript" src="transferFunction/transfer_function.js"></script>
+<script type="text/javascript" src="transferFunction/color_picker.js"></script>
+<script type="text/javascript" src="image/image.js"></script>
+<script type="text/javascript" src="image/image_factory.js"></script>
+<script type="text/javascript" src="image/image_loader.js"></script>
+<script type="text/javascript" src="volume/box.js"></script>
+<script type="text/javascript" src="volume/volume.js"></script>
+<script type="text/javascript" src="volume/volume_factory.js"></script>
+<script type="text/javascript" src="dicom/dictionary.js"></script>
+<script type="text/javascript" src="dicom/dicom_parser.js"></script>
+<script type="text/javascript" src="gradientEditor/gradient_editor.js"></script>
+<script type="text/javascript" src="controller.js"></script>
+<script type="text/javascript" src="raycaster.js"></script>
+<script type="text/javascript" src="app.js"></script>
+<script type="text/javascript" src="main.js"></script>
+
+</head>
+
+<script>
+function assert( outcome, description) {
+	var result = outcome ? 'pass' : 'fail';
+	console.log(result.toUpperCase() + " : " + description);
+};
+</script>
+
+<body oncontextmenu="return false;" onload="main()">
+
+	<canvas id="raywebgl" width="1024" height="1024"></canvas>
+
+
+	<div id="openFile" title="Open File">
+		<input type="file" id="dicomFiles" multiple style="visibility: hidden; position: absolute; top: -50; left: -50" />
+		<input type="file" id="rawFile"  style="visibility: hidden; position: absolute; top: -50; left: -50" />
+	</div>
+
+	<a>Menu</a>
+	<div class='tabbed_content' style="display:none;">
+		<div class='tabs'>
+			<div class='moving_bg'>&nbsp;</div>
+			<span class='tab_item'> Volume </span> <span class='tab_item'> Cor </span> <span class='tab_item'> Iluminação </span><span class='tab_item'> Câmera </span>
+		</div>
+
+		<div class='slide_content'>
+			<div class='tabslider'>
+				<ul>
+					<button id="dicomButton">Carregar Volume Dicom</button>
+					<button id="rawButton">Carregar Volume RAW</button>
+				</ul>
+				<ul>
+					<div>
+						<canvas style="border: 1px solid black;" id="transferGradient" width="570" height="100"></canvas>
+						<canvas style="border: 1px solid black; background: white;" id="stopPoints" width="570" height="30"></canvas>
+					</div>
+					<div>
+						<button id="saveButton">Salvar</button>
+						<input type="file" id="loadButton" name="file" />
+					</div>
+				</ul>
+				<ul>
+					<div>
+						<div>
+							<input id="usePhong" type="checkbox" checked="checked">Use Phong Shading
+							<input id="useAlphaGradient" type="checkbox">Use Gradient on Alpha
+						</div>
+							X : <input id="lightX" type="range" min="-30" max="30" value="0" step="0.1"> 
+							Y : <input id="lightY" type="range" min="-30" max="30" value="-5" step="0.1"> 
+							Z : <input id="lightZ" type="range" min="-30" max="30" value="0" step="0.1">
+					</div>
+				</ul>
+				<ul>
+					<button id="resetCamButton">Resetar câmera</button>
+				</ul>
+			</div>
+		</div>
+	</div>
+	
+
+</body>
+
+</html>
