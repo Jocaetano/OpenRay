@@ -1,52 +1,51 @@
-LittleEndianReader = function(file) {
 
-	this.readNumber = function(nBytes, startByte) {
-		switch(nBytes) {
-		case 1 :
-			return new Uint8Array(file, startByte, 1)[0];
+dataReader = function(endian) {
+	return function(file) {
+		var dataView = new DataView(file);
+
+		this.readNumber = function(nBytes, startByte) {
+			switch(nBytes) {
+			case 1 :
+				return dataView.getUint8(startByte, endian);;
+				break;
+			case 2 :
+				return dataView.getUint16(startByte, endian);
+				break;
+			case 4 :
+				return dataView.getUint32(startByte, endian);
+				break;
+			default :
+				assert(nBytes >= 0 && nBytes < 5, "0 <= nBytes < 5");
+			console.log("error default");
 			break;
-		case 2 :
-			var c = new Uint8Array(2);
-			for(var i = 0; i < 2; i++) {
-				c[i] = new Uint8Array(file, startByte + i, 1)[0];
 			}
-			return new Uint16Array(c.buffer)[0];
-			break;
-		case 4 :
-			var c = new Uint8Array(4);
-			for(var i = 0; i < 4; i++) {
-				c[i] = new Uint8Array(file, startByte + i, 1)[0];
-			}
-			return new Uint32Array(c.buffer)[0];
-			break;
-		default :
-			assert(nBytes >= 0 && nBytes < 5, "0 <= nBytes < 5");
-		console.log("error default");
-		break;
-		}
-	};
 
-	this.readCouple = function(a,b) {
-		return (a + b*256).toString(16);
-	};
+		};
 
-	this.readUint32Array = function(nBytes, startByte) {
-		return new Uint32Array(file, startByte, nBytes/4);
-	};
+		this.readCouple = function(a,b) {
+			return (a + b*256).toString(16);
+		};
 
-	this.readUint16Array = function(nBytes, startByte) {
-		return new Uint16Array(file, startByte, nBytes/2);
-	};
+		this.readUint32Array = function(nBytes, startByte) {
+			return new Uint32Array(file, startByte, nBytes/4);
+		};
 
-	this.readUint8Array = function(nBytes, startByte) {
-		return new Uint8Array(file, startByte, nBytes);
-	};
+		this.readUint16Array = function(nBytes, startByte) {
+			return new Uint16Array(file, startByte, nBytes/2);
+		};
 
-	this.readString = function(nChars, startChar) {
-		return String.fromCharCode.apply(null, new Uint8Array(file, startChar, nChars));
-	};
+		this.readUint8Array = function(nBytes, startByte) {
+			return new Uint8Array(file, startByte, nBytes);
+		};
 
+		this.readString = function(nChars, startChar) {
+			return String.fromCharCode.apply(null, new Uint8Array(file, startChar, nChars));
+		};
+	}
 };
+
+LittleEndianReader = dataReader(true);
+BigEndianReader = dataReader(false);
 
 DicomParser = function(file) {	
 	// the list of DICOM elements
@@ -88,11 +87,11 @@ DicomParser.prototype.appendDicomElement = function(element) {
 	// find a good tag name
 	var name = element.name;
 	// count the number of items
-	if( name === "Item" ) {
+	if(name === "Item") {
 		++this.numberOfItems;
 	}
 	var count = 1;
-	while( this.dicomElements[name] ) {
+	while( this.dicomElements[name]) {
 		name = element.name + (count++).toString();
 	}
 	// store it
@@ -112,19 +111,15 @@ DicomParser.prototype.appendDicomElement = function(element) {
  */
 DicomParser.prototype.readTag = function(reader, offset) {
 	// group
-	var g0 = reader.readNumber( 1, offset );
-	var g1 = reader.readNumber( 1, offset+1 );
-	var group_str = reader.readCouple(g0, g1);
+	var group_str = reader.readNumber( 2, offset).toString(16);
 	var group = "0x0000".substr(0, 6 - group_str.length) + group_str.toUpperCase();
 	// element
-	var e2 = reader.readNumber( 1, offset+2 );
-	var e3 = reader.readNumber( 1, offset+3 );
-	var element_str = reader.readCouple(e2, e3);
+	var element_str = reader.readNumber( 2, offset+2).toString(16);
 	var element = "0x0000".substr(0, 6 - element_str.length) + element_str.toUpperCase();
 	// name
 	var name = "dwv::unknown";
-	if( this.dict.newDictionary[group] ) {
-		if( this.dict.newDictionary[group][element] ) {
+	if(this.dict.newDictionary[group]) {
+		if(this.dict.newDictionary[group][element]) {
 			name = this.dict.newDictionary[group][element][2];
 		}
 	}
@@ -150,10 +145,10 @@ DicomParser.prototype.readDataElement = function(reader, offset, implicit)	{
 	var vlOffset = 0; // byte size of VL
 
 	// (private) Item group case
-	if( tag.group === "0xFFFE" ) {
+	if(tag.group === "0xFFFE") {
 		vr = "N/A";
 		vrOffset = 0;
-		vl = reader.readNumber( 4, offset+tagOffset );
+		vl = reader.readNumber( 4, offset+tagOffset);
 		vlOffset = 4;
 	}
 	// non Item case
@@ -161,45 +156,45 @@ DicomParser.prototype.readDataElement = function(reader, offset, implicit)	{
 		// implicit VR?
 		if(implicit) {
 			vr = "UN";
-			if( this.dict.newDictionary[tag.group] ) {
-				if( this.dict.newDictionary[tag.group][tag.element] ) {
+			if(this.dict.newDictionary[tag.group]) {
+				if(this.dict.newDictionary[tag.group][tag.element]) {
 					vr = this.dict.newDictionary[tag.group][tag.element][0];
 				}
 			}
 			vrOffset = 0;
-			vl = reader.readNumber( 4, offset+tagOffset+vrOffset );
+			vl = reader.readNumber( 4, offset+tagOffset+vrOffset);
 			vlOffset = 4;
 		}
 		else {
-			vr = reader.readString( 2, offset+tagOffset );
+			vr = reader.readString( 2, offset+tagOffset);
 			vrOffset = 2;
 			// long representations
 			if(vr === "OB" || vr === "OF" || vr === "SQ" || vr === "OW" || vr === "UN") {
-				vl = reader.readNumber( 4, offset+tagOffset+vrOffset+2 );
+				vl = reader.readNumber( 4, offset+tagOffset+vrOffset+2);
 				vlOffset = 6;
 			}
 			// short representation
 			else {
-				vl = reader.readNumber( 2, offset+tagOffset+vrOffset );
+				vl = reader.readNumber( 2, offset+tagOffset+vrOffset);
 				vlOffset = 2;
 			}
 		}
 	}
 
 	// check the value of VL
-	if( vl === 0xffffffff ) {
+	if(vl === 0xffffffff) {
 		vl = 0;
 	}
 
 	// data
 	var data;
-	if( vr === "US" || vr === "UL")	{
+	if(vr === "US" || vr === "UL")	{
 		data = [reader.readNumber( vl, offset+tagOffset+vrOffset+vlOffset)];
 	}
-	else if( vr === "OX" || vr === "OW" )	{
+	else if(vr === "OX" || vr === "OW")	{
 		data = reader.readUint16Array(vl, offset+tagOffset+vrOffset+vlOffset);
 	}
-	else if( vr === "OB" || vr === "N/A")	{
+	else if(vr === "OB" || vr === "N/A")	{
 		var begin = offset+tagOffset+vrOffset+vlOffset;
 		var end = begin + vl;
 		data = reader.readUint8Array(end - begin, begin);
@@ -248,51 +243,51 @@ DicomParser.prototype.parseAll = function()	{
 	// meta elements
 	var metaStart = offset;
 	var metaEnd = offset + metaLength;
-	for(i = metaStart; i < metaEnd; i++ ) 	{
+	for(i = metaStart; i < metaEnd; i++) 	{
 		// get the data element
 		dataElement = this.readDataElement(metaReader, i, false);
 		// check the transfer syntax
-		if( dataElement.tag.name === "TransferSyntaxUID" ) {
+		if(dataElement.tag.name === "TransferSyntaxUID") {
 			var syntax = dataElement.data[0];
 			// get rid of ending zero-width space (u200B)
-			if( syntax[syntax.length-1] === String.fromCharCode("u200B") ) {
-				syntax = syntax.substring(0, syntax.length-1); 
+			if(syntax[syntax.length-1] === String.fromCharCode("u200B")) {
+				syntax = syntax.substring(0, syntax.length - 1); 
 			}
-			
+
 			//DEFAULT ==> Explicit VR - Little Endian: 1.2.840.10008.1.2.1 
-			
+
 			// Implicit VR - Little Endian
-			if( syntax === "1.2.840.10008.1.2" ) {
+			if(syntax === "1.2.840.10008.1.2") {
 				implicit = true;
 			}
 			// Deflated Explicit VR - Little Endian
-			else if( syntax === "1.2.840.10008.1.2.1.99" ) {
-				throw new Error("Unsupported DICOM transfer syntax (Deflated Explicit VR): "+syntax);
+			else if(syntax === "1.2.840.10008.1.2.1.99") {
+				throw new Error("Unsupported DICOM transfer syntax (Deflated Explicit VR): "+ syntax);
 			}
 			// Explicit VR - Big Endian
-			else if( syntax === "1.2.840.10008.1.2.2" ) {
-//				dataReader = new BigEndianReader(this.file);
+			else if(syntax === "1.2.840.10008.1.2.2") {
+				dataReader = new BigEndianReader(this.file);
 			}
 			// JPEG
-			else if( syntax.match(/1.2.840.10008.1.2.4.5/) 
+			else if(syntax.match(/1.2.840.10008.1.2.4.5/) 
 					|| syntax.match(/1.2.840.10008.1.2.4.6/)
 					|| syntax.match(/1.2.840.10008.1.2.4.7/) 
-					|| syntax.match(/1.2.840.10008.1.2.4.8/) ) {
+					|| syntax.match(/1.2.840.10008.1.2.4.8/)) {
 				jpeg = true;
-				throw new Error("Unsupported DICOM transfer syntax (JPEG): "+syntax);
+				throw new Error("Unsupported DICOM transfer syntax (JPEG): "+ syntax);
 			}
 			// JPEG 2000
-			else if( syntax.match(/1.2.840.10008.1.2.4.9/) ) {
+			else if(syntax.match(/1.2.840.10008.1.2.4.9/)) {
 				jpeg2000 = true;
-				throw new Error("Unsupported DICOM transfer syntax (JPEG 2000): "+syntax);
+				throw new Error("Unsupported DICOM transfer syntax (JPEG 2000): "+ syntax);
 			}
 			// MPEG2 Image Compression
-			else if( syntax === "1.2.840.10008.1.2.4.100" ) {
-				throw new Error("Unsupported DICOM transfer syntax (MPEG2): "+syntax);
+			else if(syntax === "1.2.840.10008.1.2.4.100") {
+				throw new Error("Unsupported DICOM transfer syntax (MPEG2): "+ syntax);
 			}
 			// RLE (lossless)
-			else if( syntax === "1.2.840.10008.1.2.4.5" ) {
-				throw new Error("Unsupported DICOM transfer syntax (RLE): "+syntax);
+			else if(syntax === "1.2.840.10008.1.2.4.5") {
+				throw new Error("Unsupported DICOM transfer syntax (RLE): "+ syntax);
 			}
 		}            
 		// store the data element
@@ -300,7 +295,7 @@ DicomParser.prototype.parseAll = function()	{
 			'name': dataElement.tag.name,
 			'group': dataElement.tag.group, 
 			'element': dataElement.tag.element,
-			'value': dataElement.data } );
+			'value': dataElement.data });
 		// increment index
 		i += dataElement.offset - 1;
 	}
@@ -312,22 +307,22 @@ DicomParser.prototype.parseAll = function()	{
 		// get the data element
 		dataElement = this.readDataElement(dataReader, i, implicit);
 		// store pixel data from multiple items
-		if( startedPixelItems ) {
-			if( dataElement.tag.name === "Item" ) {
-				if( dataElement.data.length !== 0 ) {
-					this.pixelBuffer = this.pixelBuffer.concat( dataElement.data );
+		if(startedPixelItems) {
+			if(dataElement.tag.name === "Item") {
+				if(dataElement.data.length !== 0) {
+					this.pixelBuffer = this.pixelBuffer.concat(dataElement.data);
 				}
 			}
-			else if( dataElement.tag.name === "SequenceDelimitationItem" ) {
+			else if(dataElement.tag.name === "SequenceDelimitationItem") {
 				startedPixelItems = false;
 			}
 			else {
-				throw new Error("Unexpected tag in encapsulated pixel data: "+dataElement.tag.name);
+				throw new Error("Unexpected tag in encapsulated pixel data: "+ dataElement.tag.name);
 			}
 		}
 		// check the pixel data tag
-		if( dataElement.tag.name === "PixelData") {
-			if( dataElement.data.length !== 0 ) {
+		if(dataElement.tag.name === "PixelData") {
+			if(dataElement.data.length !== 0) {
 				this.pixelBuffer = dataElement.data;
 			}
 			else {
@@ -341,16 +336,16 @@ DicomParser.prototype.parseAll = function()	{
 			'vr' : dataElement.vr, 
 			'vl' : dataElement.vl, 
 			'element': dataElement.tag.element,
-			'value': dataElement.data } );
+			'value': dataElement.data });
 		// increment index
 		i += dataElement.offset-1;
 	}
 
 	// uncompress data
-	if( jpeg ) {
+	if(jpeg) {
 		console.log("JPEG");
 	}
-	else if( jpeg2000 ) {
+	else if(jpeg2000) {
 		console.log("JPEG 2000");
 	}
 };

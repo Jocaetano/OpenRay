@@ -16,7 +16,7 @@ ImageFactory.createC3DEImagesFromWeb = function() {
 
 	ImageLoader.totalSize = 300;
 	
-	for(var i = 100; i < 401; i++) {
+	for(var i = 100; i <= 400; i++) {
 		var xhr = new XMLHttpRequest();
 		xhr.open('GET', './ANGIO_CT/IM-0001-0' + i + '.dcm', true);
 

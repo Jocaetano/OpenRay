@@ -89,7 +89,7 @@ Volume.prototype.getPixelSpacing = function() {
 
 		result.x = firstInfo.pixelSpacing.x;
 		result.y = firstInfo.pixelSpacing.y;
-		result.z = firstInfo.pixelSpacing.z || Math.min(firstInfo.imageThickness, euclidianDistance(firstInfo.position, secondInfo.position));
+		result.z = firstInfo.pixelSpacing.z || Math.min(firstInfo.sliceThickness, euclidianDistance(firstInfo.position, secondInfo.position));
 	}else if(this._imgContainer.length > 2) {
 		result = this._pixelSpacing;
 	}
