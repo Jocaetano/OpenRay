@@ -80,7 +80,7 @@ VolumeRaycaster.prototype.createVoxelFunction = function() {
 		float voxel(vec3 pos) {\n\
 		float slice = pos.z * numberOfSlices;\n\
 		vec3 rgb = voxelVolume(pos, " + this.slicesLength[0] + ".0, volumeTexture1, slice);\n\
-		return rgb.b*255.0*65536.0 + rgb.g*65280.0 + rgb.r*255.0;\n\
+		return ((rgb.g*65280.0 + rgb.r*255.0) * " + this.volume._rescaleSlope + ".0) + " + this.volume._rescaleIntercept +".0;;\n\
 		}";
 
 	if(this.numSlices > 1) {
@@ -106,7 +106,7 @@ VolumeRaycaster.prototype.createVoxelFunction = function() {
 		rgb = voxelVolume(pos, " + this.slicesLength[i] + ".0, volumeTexture" + (i+1) + ", slice - " + (temp) + ".0);\n\t\
 		}\n\t";
 
-		shaderF += "return rgb.b*255.0*65536.0 + rgb.g*65280.0 + rgb.r*255.0;\n\t}";
+		shaderF += "((rgb.g*65280.0 + rgb.r*255.0) * " + this.volume._rescaleSlope + ".0) + " + this.volume._rescaleIntercept +".0;\n\t}";
 	}
 	return shaderF;
 };

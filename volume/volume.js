@@ -6,6 +6,8 @@ function Volume(densityLimits, imageInfo) {
 	this._maxDensity = densityLimits.second;
 	this._imgContainer = new Array();
 	this._boundDimDirty = true;
+	this._rescaleSlope = imageInfo.rescaleSlope || 1;
+	this._rescaleIntercept = imageInfo.rescaleIntercept ? imageInfo.rescaleIntercept - this._minDensity : 0;
 }
 
 Volume.prototype.slice = function(begin, end) {

@@ -52,25 +52,25 @@ GLTexture2D.prototype.loadFromImage = function(imageURL) {
 
 GLTexture2D.prototype.loadFromVolume = function(volume) {
 	var dicomSize = volume._imageWidth;
+	//length is the number of images in a row of the final image matrix 
 	var length = Math.ceil(Math.sqrt(volume._imgContainer.length));
 	this.createTexture(dicomSize*length, dicomSize*length, gl.RGB);
-	
-	var data = new Uint8Array(dicomSize*dicomSize*length*length*3);
-	var temp = new Uint8Array(dicomSize*dicomSize*3);
+	//bytesRow is the number of bytes in a row of a single image
+	var bytesRow = dicomSize*3;
+
+	var dataTexture = new Uint8Array(dicomSize*dicomSize*length*length*3);
+	var dataImage = new Uint8Array(dicomSize*bytesRow + (32 - (dicomSize*bytesRow % 32)));
+
 	for(var i = 0; i < volume._imgContainer.length; i++) {
-		volume._imgContainer[i].generateDicomImageData(temp, volume._minDensity);
-		var columnOffset  = i % length;
-		var rowOffset = Math.floor(i/length);
-		for(var line = rowOffset*dicomSize; line < (rowOffset+1)*dicomSize; line++) {
-			var tempLine = line - rowOffset*dicomSize;
-			for(var column = columnOffset*dicomSize*3; column < (columnOffset+1)*dicomSize*3; column++){
-				var tempColumn = column - columnOffset*dicomSize*3;
-				data[line*dicomSize*length*3 + column] = temp[tempLine*dicomSize*3 + tempColumn];
-			}	
+		volume._imgContainer[i].generateRGBData(dataImage);
+		var columnOffset  = (i % length) * bytesRow;
+		var rowOffset = Math.floor(i/length) * dicomSize;
+		for(var rowTexture = rowOffset, rowImage = 0; rowImage < dicomSize; rowTexture++, rowImage++) {
+			dataTexture.set(new Uint8Array(dataImage.buffer, bytesRow*rowImage, bytesRow), rowTexture*bytesRow*length + columnOffset);
 		}
 	}
 
-	this.updatePixels(data, gl.RGB);
+	this.updatePixels(dataTexture, gl.RGB);
 };
 
 GLTexture2D.prototype.updatePixels = function(data, format) {
