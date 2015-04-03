@@ -2,52 +2,6 @@ var ImageLoader = ImageLoader || {};
 ImageLoader.imgs = new Array();
 
 ImageLoader.loadImage = function(file) {
-	/*
-	var jParser = new DicomParser(file);
- 	
-	jParser.parseAll();        
-
-	var info = {};
-
-	if(jParser.dicomElements.PixelSpacing) {
-		var temp = jParser.dicomElements.PixelSpacing;
-		info.pixelSpacing = { x: parseFloat(temp.value[0]), y: parseFloat(temp.value[1])};
-	}
-
-	if(jParser.dicomElements.ImageOrientationPatient) {
-		var temp = jParser.dicomElements.ImageOrientationPatient;
-		info.xOrientation = { x: parseFloat(temp.value[0]), y:  parseFloat(temp.value[1]), z: parseFloat(temp.value[2])};
-		info.yOrientation = { x: parseFloat(temp.value[3]), y:  parseFloat(temp.value[4]), z: parseFloat(temp.value[5])};
-	}
-
-	if(jParser.dicomElements.ImagePositionPatient) {
-		temp = jParser.dicomElements.ImagePositionPatient;
-		info.position = { x: parseFloat(temp.value[0]), y: parseFloat(temp.value[1]), z: parseFloat(temp.value[2])};
-	}
-
-	if(jParser.dicomElements.SamplesPerPixel)		info.samplesPerPixel 		= parseFloat(jParser.dicomElements.SamplesPerPixel.value[0]);
-	if(jParser.dicomElements.SliceThickness)		info.sliceThickness 		= parseFloat(jParser.dicomElements.SliceThickness.value[0]);
-	if(jParser.dicomElements.InstanceNumber)		info.sliceNum 				= parseFloat(jParser.dicomElements.InstanceNumber.value[0]);
-	if(jParser.dicomElements.BitsAllocated)			info.depth 					= jParser.dicomElements.BitsAllocated.value[0];
-	if(jParser.dicomElements.Rows)					info.height 				= parseFloat(jParser.dicomElements.Rows.value[0]);
-	if(jParser.dicomElements.Columns) 				info.width 					= parseFloat(jParser.dicomElements.Columns.value[0]);
-	if(jParser.dicomElements.RescaleSlope)			info.rescaleSlope			= parseFloat(jParser.dicomElements.RescaleSlope.value[0]);
-	if(jParser.dicomElements.RescaleIntercept)		info.rescaleIntercept		= parseFloat(jParser.dicomElements.RescaleIntercept.value[0]);
-	if(jParser.dicomElements.ImageType) 			info.imageType 				= jParser.dicomElements.ImageType.value[0];
-	if(jParser.dicomElements.PatientName) 			info.patientName 			= jParser.dicomElements.PatientName.value[0];
-	if(jParser.dicomElements.PatientSex)  			info.patientSex 			= jParser.dicomElements.PatientSex.value[0];
-	if(jParser.dicomElements.PatientAge)			info.patientAge 			= parseFloat(jParser.dicomElements.PatientAge.value[0]);
-	if(jParser.dicomElements.PatientBirthDate)		info.patientBirthDate 		= jParser.dicomElements.PatientBirthDate.value[0];
-	if(jParser.dicomElements.FrameIncrementPointer)	info.frameIncrementPointer	= parseFloat(jParser.dicomElements.FrameIncrementPointer.value[0]);
-	if(jParser.dicomElements.NumberOfFrames)		info.numberOfFrames 		= parseFloat(jParser.dicomElements.NumberOfFrames.value[0]);
-	if(jParser.dicomElements.FrameTime) 			info.frameTime 				= parseFloat(jParser.dicomElements.FrameTime.value[0]);
-	if(jParser.dicomElements.FrameTimeVector) 		info.frameTimeVector 		= parseFloat(jParser.dicomElements.FrameTimeVector.value[0]);
-
-	info.size = info.height * info.width;
-
-	info.DicomImage = true;
-	
-	*/	
 
 	var info = {};
 	
@@ -89,7 +43,6 @@ ImageLoader.loadImage = function(file) {
 		if(dataset.elements.x00181065) 		info.frameTimeVector		= dataset.floatString('x00181065', 0);
 	}
 	catch(err)	{
-		// we catch the error and display it to the user
 		$('#parseError').text(err);
 	}
 
@@ -97,8 +50,8 @@ ImageLoader.loadImage = function(file) {
 
 	info.DicomImage = true;
 	
+	//There is probably a better way to get the pixelBuffer using the dicomParser 
 	var dicomImage = new DicomImage(info, new Uint16Array(file, dataset.elements.x7fe00010.dataOffset, dataset.elements.x7fe00010.length/2));
-//	var dicomImage = new DicomImage(info, jParser.getImageBuffer());
 	
 	return dicomImage;
 };
