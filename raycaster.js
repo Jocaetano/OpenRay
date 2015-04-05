@@ -75,38 +75,46 @@ VolumeRaycaster.prototype.initRaycastProgram = function() {
 };
 
 VolumeRaycaster.prototype.createVoxelFunction = function() {
-	var shaderF = "uniform sampler2D volumeTexture1;\n\
-		\
-		float voxel(vec3 pos) {\n\
-		float slice = pos.z * numberOfSlices;\n\
-		vec3 rgb = voxelVolume(pos, " + this.slicesLength[0] + ".0, volumeTexture1, slice);\n\
-		return ((rgb.g*65280.0 + rgb.r*255.0) * " + this.volume._rescaleSlope + ".0) + " + this.volume._rescaleIntercept +".0;;\n\
-		}";
+	var shaderF = "\nuniform sampler2D volumeTexture1;\n";
+	shaderF += "\n";
+	shaderF += "float voxel(vec3 pos) {\n";
+	shaderF += "	float slice = pos.z * numberOfSlices;\n";
+	shaderF += "	vec3 rgb = voxelVolume(pos, " + this.slicesLength[0] + ".0, volumeTexture1, slice);\n";
+	shaderF += "	return ((rgb.g*65280.0 + rgb.r*255.0) * " + this.volume._rescaleSlope + ".0) + " + this.volume._rescaleIntercept +".0;\n";
+	shaderF += "}";
 
 	if(this.numSlices > 1) {
-		shaderF = '';
+		shaderF = "\n";
 		for(var j = 0; j < this.numSlices; j++) {
 			shaderF += "uniform sampler2D volumeTexture" + (j+1) + " ;\n";
 		}
-		shaderF += "float voxel(vec3 pos) {\n\t\t vec3 rgb; \n\t float slice = pos.z * numberOfSlices;\n\t";
-		shaderF += "if(slice < "+ (this.slicesLength[0] - 1) + ".0) {\n\t	rgb = voxelVolume(pos, " + this.slicesLength[0] + ".0 , volumeTexture1, slice);\n\t	}\n\t";
+		shaderF += "\n";
+		shaderF += "float voxel(vec3 pos) {\n";
+		shaderF += "	vec3 rgb;\n";
+		shaderF += "	float slice = pos.z * numberOfSlices;\n";
+		shaderF += "	if(slice < "+ (this.slicesLength[0] - 1) + ".0) {\n";
+		shaderF += "		rgb = voxelVolume(pos, " + this.slicesLength[0] + ".0 , volumeTexture1, slice);\n";
+		shaderF += "	}\n";
 		var temp = this.slicesLength[0];
 		var i = 1;
 		for(; i < this.numSlices - 1; i++) {
-			shaderF += "else if(slice < " + (temp) + ".0) {\n\t\
-			rgb = voxelVolumeIntersection(pos, " + Math.ceil(Math.sqrt(this.slicesLength[i-1])) + ".0, " + Math.ceil(Math.sqrt(this.slicesLength[i])) + ".0, volumeTexture" + i + ", volumeTexture" + (i+1) + ", slice - " + (temp - this.slicesLength[i - 1]) + ".0);\n\t\
-			} else if(slice < " + (temp + this.slicesLength[i] - 1) + ".0) {\n\t\
-			rgb = voxelVolume(pos, " + this.slicesLength[i] + ".0, volumeTexture" + (i+1) + ", slice - " + temp + ".0);\n\t\
-			}\n\t";
+			shaderF += "	else if(slice < " + (temp) + ".0) {\n"
+			shaderF += "		rgb = voxelVolumeIntersection(pos, " + Math.ceil(Math.sqrt(this.slicesLength[i-1])) + ".0, " + Math.ceil(Math.sqrt(this.slicesLength[i])) + ".0, volumeTexture" + i + ", volumeTexture" + (i+1) + ", slice - " + (temp - this.slicesLength[i - 1]) + ".0);\n"
+			shaderF += "	}\n"
+			shaderF += "	else if(slice < " + (temp + this.slicesLength[i] - 1) + ".0) {\n";
+			shaderF += "		rgb = voxelVolume(pos, " + this.slicesLength[i] + ".0, volumeTexture" + (i+1) + ", slice - " + temp + ".0);\n"
+			shaderF += "	}\n";
 			temp += this.slicesLength[i];
 		}
-		shaderF += "else if(slice < " + (temp) + ".0) {\n\t\
-		rgb = voxelVolumeIntersection(pos, " + Math.ceil(Math.sqrt(this.slicesLength[i-1])) + ".0, " + Math.ceil(Math.sqrt(this.slicesLength[i])) + ".0, volumeTexture" + i + ", volumeTexture" + (i+1) + ", slice - " + (temp - this.slicesLength[i - 1]) + ".0);\n\t\
-		} else if(slice < " + (temp + this.slicesLength[i]) + ".0) {\n\t\
-		rgb = voxelVolume(pos, " + this.slicesLength[i] + ".0, volumeTexture" + (i+1) + ", slice - " + (temp) + ".0);\n\t\
-		}\n\t";
+		shaderF += "	else if(slice < " + (temp) + ".0) {\n";
+		shaderF += "		rgb = voxelVolumeIntersection(pos, " + Math.ceil(Math.sqrt(this.slicesLength[i-1])) + ".0, " + Math.ceil(Math.sqrt(this.slicesLength[i])) + ".0, volumeTexture" + i + ", volumeTexture" + (i+1) + ", slice - " + (temp - this.slicesLength[i - 1]) + ".0);\n";
+		shaderF += "	}\n";
+		shaderF += "	else if(slice < " + (temp + this.slicesLength[i]) + ".0) {\n";
+		shaderF += "		rgb = voxelVolume(pos, " + this.slicesLength[i] + ".0, volumeTexture" + (i+1) + ", slice - " + (temp) + ".0);\n";
+		shaderF += "	}\n";
 
-		shaderF += "((rgb.g*65280.0 + rgb.r*255.0) * " + this.volume._rescaleSlope + ".0) + " + this.volume._rescaleIntercept +".0;\n\t}";
+		shaderF += "	return ((rgb.g*65280.0 + rgb.r*255.0) * " + this.volume._rescaleSlope + ".0) + " + this.volume._rescaleIntercept +".0;\n";
+		shaderF += "}";
 	}
 	return shaderF;
 };
@@ -183,12 +191,12 @@ VolumeRaycaster.prototype.initVolumeBuffer = function() {
 	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
 
 	cubeVertexIndices = [
-	                     2, 0, 4,   2, 4, 6,  // Left face
-	                     1, 0, 2,   1, 2, 3,    // Bottom face
-	                     0, 5, 4,   0, 1, 5, // Front face
-	                     2, 6, 7,   2, 7, 3,    // Back face
-	                     1, 7, 5,   1, 3, 7, // Right face
-	                     4, 7, 6,   4, 5, 7,  // Top face
+	                     2, 0, 4,   2, 4, 6,	// Left face
+	                     1, 0, 2,   1, 2, 3,	// Bottom face
+	                     0, 5, 4,   0, 1, 5,	// Front face
+	                     2, 6, 7,   2, 7, 3,	// Back face
+	                     1, 7, 5,   1, 3, 7,	// Right face
+	                     4, 7, 6,   4, 5, 7,	// Top face
 	                     ];
 
 	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.cubeVertexIndexBuffer);
