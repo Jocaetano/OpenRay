@@ -44,15 +44,15 @@ function Controller() {
 
 	var slider = document.getElementById('lightX');
 	this.updateSliderX = this.updateSlider(0, slider, this);
-	slider.addEventListener('change', this.updateSliderX, false);
+	slider.addEventListener('input', this.updateSliderX, false);
 
 	slider = document.getElementById('lightY');
 	this.updateSliderY = this.updateSlider(1, slider, this);
-	slider.addEventListener('change', this.updateSliderY, false);
+	slider.addEventListener('input', this.updateSliderY, false);
 
 	slider = document.getElementById('lightZ');
 	this.updateSliderZ = this.updateSlider(2, slider, this);
-	slider.addEventListener('change', this.updateSliderZ, false);
+	slider.addEventListener('input', this.updateSliderZ, false);
 
 	document.addEventListener("keyup", function(event) {
 		switch(event.keyCode) {
@@ -111,6 +111,7 @@ function Controller() {
 Controller.prototype.updateCheckBox = function(phongCheckBox, alphaGradientCheckBox, selfController) {
 	return function(event) {
 		app.raycaster.restartProgram(phongCheckBox.checked, alphaGradientCheckBox.checked);
+		selfController.modified = true;
 	};
 };
 
@@ -230,7 +231,7 @@ Controller.prototype.loadRAW = function(selfController)	{
 		var reader = new FileReader();
 		reader.onload = function(evt)     {
 			var pixelSpacing = {x : 1, y : 1, z : 1};
-			app.setVolume(VolumeFactory.createVolumefromRaw(evt.target.result, 1, 256, 256, 110, pixelSpacing));
+			app.setVolume(VolumeFactory.createVolumefromRaw(evt.target.result, 1, 300, 300, 300, pixelSpacing));
 		};
 		reader.readAsArrayBuffer(event.target.files[0]);
 
