@@ -5,11 +5,8 @@ VolumeFactory.C3DEImageOrderer = function(img1, img2) {
 };
 
 VolumeFactory.createDicomVolume = function(images) {
-	images.sort(VolumeFactory.C3DEImageOrderer);	
-	var vol = new Volume(images[0].densityLimits(), images[0].imageInfo);
-	for (var i = 0; i < images.length; i++) {
-		vol.insertImage(images[i]);
-	}
+	images.sort(VolumeFactory.C3DEImageOrderer);
+	var vol = new Volume(images[0].densityLimits(), images[0].imageInfo, images);
 	return vol;
 };
 
@@ -34,7 +31,7 @@ VolumeFactory.createVolumefromRaw = function(fileBuffer, pixelType, dimX, dimY, 
 				vol.insertImage(image);
 			}
 	);
-	
+
 	return vol;
 };
 

@@ -1,5 +1,5 @@
 
-function Volume(densityLimits, imageInfo) {
+function Volume(densityLimits, imageInfo, images) {
 	this._imageWidth = imageInfo.width;
 	this._imageHeight = imageInfo.height;
 	this._minDensity = densityLimits.first;
@@ -7,17 +7,24 @@ function Volume(densityLimits, imageInfo) {
 	this._imgContainer = new Array();
 	this._boundDimDirty = true;
 	this._rescaleSlope = imageInfo.rescaleSlope || 1;
-	this._rescaleIntercept = imageInfo.rescaleIntercept ? imageInfo.rescaleIntercept - this._minDensity : 0;
+	this._rescaleIntercept = imageInfo.rescaleIntercept || 0;
+	this._rescale = imageInfo.rescaleIntercept - this._minDensity;
+
+	if(images) {
+		for (var i = 0; i < images.length; i++) {
+			this.insertImage(images[i]);
+		}
+		this.calculatePixelSpacing();
+	}
 }
 
 Volume.prototype.slice = function(begin, end) {
-	assert(begin >= 0 && end <= this._imgContainer.length && (end - begin > 0), "sliceVolume");
 	var volume = {};
 	volume.length = end - begin;
 	volume._imgContainer = this._imgContainer.slice(begin, end);
 	volume._imageWidth = this._imageWidth;
 	volume._minDensity = this._minDensity;
-	
+
 	return volume;
 };
 
@@ -43,9 +50,7 @@ Volume.prototype._recalculateBounding = function() {
 		max_y = Math.max(value, max_y);
 	}
 
-	var ps = this.getPixelSpacing();
-
-	this._boundingBox = new Box([0,0,0], [max_x * ps.x, max_y *ps.y, max_z * ps.z]);
+	this._boundingBox = new Box([0,0,0], [max_x * this._pixelSpacing.x, max_y *this._pixelSpacing.y, max_z * this._pixelSpacing.z]);
 	this._dimensions = [max_x,max_y,max_z];
 	this._boundDimDirty = false;
 };
@@ -59,10 +64,16 @@ Volume.prototype.insertImage = function(image) {
 	var densityLimits = image.densityLimits();
 	if(densityLimits.first < this._minDensity)
 		this._minDensity = densityLimits.first;
-	if(this._maxDensity < densityLimits.second)
+	if(densityLimits.second > this._maxDensity)
 		this._maxDensity = densityLimits.second;
-	if (this._imgContainer.length == 2) {
-		this._pixelSpacing = this.getPixelSpacing();
+};
+
+/**Inserts a group of images in the volume
+ * @param images : a array of images to be inserted in the volume
+ */
+Volume.prototype.insertImages = function(images) {
+	for (var i = 0; i < images.length; i++) {
+		this.insertImage(images[i]);
 	}
 };
 
@@ -82,19 +93,20 @@ function euclidianDistance(a, b) {
 	return distance;
 }
 
-Volume.prototype.getPixelSpacing = function() {
-	var result = {};
-
-	if(this._imgContainer.length == 2) {
+Volume.prototype.calculatePixelSpacing = function() {
+	if(!this._pixelSpacing) {
+		this._pixelSpacing = {'x' : -1 >>> 0, 'y' : -1 >>> 0, 'z' : -1 >>> 0};
 		var firstInfo = this._imgContainer[0].imageInfo;
 		var secondInfo = this._imgContainer[1].imageInfo;
 
-		result.x = firstInfo.pixelSpacing.x;
-		result.y = firstInfo.pixelSpacing.y;
-		result.z = firstInfo.pixelSpacing.z || Math.min(firstInfo.sliceThickness, euclidianDistance(firstInfo.position, secondInfo.position));
-	}else if(this._imgContainer.length > 2) {
-		result = this._pixelSpacing;
+		this._pixelSpacing.x = firstInfo.pixelSpacing.x;
+		this._pixelSpacing.y = firstInfo.pixelSpacing.y;
+		this._pixelSpacing.z = firstInfo.pixelSpacing.z || Math.min(firstInfo.sliceThickness, euclidianDistance(firstInfo.position, secondInfo.position));
 	}
 
-	return result;
+	return this._pixelSpacing;
+};
+
+Volume.prototype.getPixelSpacing = function() {
+	return this._pixelSpacing;
 };
