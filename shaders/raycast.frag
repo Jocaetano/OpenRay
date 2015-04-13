@@ -67,8 +67,8 @@ vec4 compositeFrontToBack(vec4 color, vec4 sample) {
 	return vec4(sample.rgb * newAlpha, newAlpha);
 }
 
-vec4 transfer(float v) {
-	float pos = v / transferRangeValue;
+vec4 transfer(float value) {
+	float pos = value / transferRangeValue;
 	return texture2D(transferFunctionTexture, vec2(pos, 1.0));
 }
 
