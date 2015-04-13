@@ -11,40 +11,29 @@ VolumeFactory.createDicomVolume = function(images) {
 };
 
 VolumeFactory.createVolumefromRaw = function(fileBuffer, pixelType, dimX, dimY, dimZ, pixelSpacing) {	
-	var imagesSize = dimX * dimY;
-
-	var imgContainer = VolumeFactory.createImagesFromRaw(fileBuffer, pixelType, imagesSize, dimX, dimY, dimZ);
-
+	var imageSize = dimX * dimY;
 	var dcmInfo = {};
 	dcmInfo.height = dimY;
 	dcmInfo.width = dimX;
 	dcmInfo.size = dimY * dimX;
 	dcmInfo.pixelSpacing = pixelSpacing;
+	dcmInfo.bitsAllocated = pixelType*8;
+	dcmInfo.rescaleSlope = 1;
+	dcmInfo.rescaleIntercept = 0;
+	
+	var imgContainer = VolumeFactory.createImagesFromRaw(fileBuffer, dcmInfo, pixelType, imageSize, dimZ);
 
-	var vol = new Volume(imgContainer[0].densityLimits(), dcmInfo);
-
-	var i = 0;
-	imgContainer.forEach(
-			function(image) {
-				dcmInfo.position = {x : 0, y : 0, z : pixelSpacing.z * i};
-				image.imageInfo = dcmInfo;
-				vol.insertImage(image);
-			}
-	);
+	var vol = new Volume(imgContainer[0].densityLimits(), dcmInfo, imgContainer);
 
 	return vol;
 };
 
-VolumeFactory.createImagesFromRaw = function(fileBuffer, pixelType, imageSize, dimX, dimY, dimZ) {
-
+VolumeFactory.createImagesFromRaw = function(fileBuffer, dcmInfo, pixelType, imageSize, dimZ) {
 	var imgContainer = new Array();
-
 	var bufferView;
-
 	var startByte = 0;
 
 	for (var i = 0; i < dimZ; i++) {
-
 		switch(pixelType) {
 		case 1:
 			bufferView = new Uint8Array(fileBuffer, startByte, imageSize);
@@ -52,13 +41,16 @@ VolumeFactory.createImagesFromRaw = function(fileBuffer, pixelType, imageSize, d
 		case 2:
 			bufferView = new Uint16Array(fileBuffer, startByte, imageSize);
 			break;
+		case 3:
+			bufferView = new Uint8Array(fileBuffer, startByte, imageSize*3);
+			break;
 		case 4:
 			bufferView = new Uint32Array(fileBuffer, startByte, imageSize);
 			break;
 		default : 
-			bufferView = 0;
+			bufferView = new Uint8Array(fileBuffer, startByte, imageSize);
 		}
-		var image = new DicomImage({}, bufferView);
+		var image = new DicomImage(dcmInfo, bufferView);
 		imgContainer.push(image);
 
 		startByte += imageSize * pixelType;

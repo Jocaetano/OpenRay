@@ -30,7 +30,24 @@ DicomImage.prototype.densityLimits = function() {
 
 //16 bits to 24 bits(RGB)
 DicomImage.prototype.generateRGBData = function(array){
-	
+	switch(this.imageInfo.bitsAllocated) {
+	case 8:
+		this.from8toRGB(array);
+		break;
+	case 16:
+		this.from16toRGB(array);
+		break;
+	case 24:
+		break;
+	case 32:
+		console.log("32bit per sample not supported yet");
+		break;
+	default:
+		console.log(this.imageInfo.bitsAllocated);
+	}
+};
+
+DicomImage.prototype.from16toRGB = function(array){
 	//NEXT STEP, USE FLOAT64ARRAY TO READ
 //	var uint32view = new Uint32Array(array.buffer);
 //	//X0XX XX0X 0XX0     X => 1111 1111
@@ -50,6 +67,13 @@ DicomImage.prototype.generateRGBData = function(array){
 		array[index] = int8View[0];
 		array[index+1] = int8View[1];
 //		array[index+2] = 0; this byte is never used
+	}
+};
+
+DicomImage.prototype.from8toRGB = function(array){
+	for(var i = 0; i < this.imageInfo.size; ++i)    {
+		index = 3*i;
+		array[index] = this.buffer[i];
 	}
 };
 

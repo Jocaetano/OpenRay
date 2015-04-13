@@ -47,8 +47,6 @@ ImageLoader.loadImage = function(file) {
 	}
 
 	info.size = info.height * info.width;
-
-	info.DicomImage = true;
 	
 	//There is probably a better way to get the pixelBuffer using the dicomParser - Found it, cornerstoneWADOImageLoader.extractUncompressedPixels(dataSet, width, height, frame)
 	var dicomImage = new DicomImage(info, new Uint16Array(file, dataset.elements.x7fe00010.dataOffset, info.size));
