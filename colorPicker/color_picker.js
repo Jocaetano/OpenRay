@@ -1,9 +1,9 @@
 
-function ColorPicker(position, id, updateFunction, color, alpha) {
+function ColorPicker(position, id, updateFunction, color) {
 	this.red = color.r;
 	this.green = color.g;
 	this.blue = color.b;
-	this.alpha = alpha;
+	this.alpha = color.a;
 	this.id = id;
 	this.update = updateFunction;
 
@@ -88,7 +88,7 @@ ColorPicker.prototype.createColorMapWidget = function() {
 			index = (i + j * imageData.width) * 4;
 		    imageData.data[index+0] = i;
 		    imageData.data[index+1] = j;
-		    imageData.data[index+2] = 0;
+		    imageData.data[index+2] = this.blue;
 		    imageData.data[index+3] = 255;
 		}
 	}
@@ -106,8 +106,8 @@ ColorPicker.prototype.createColorMapWidget = function() {
 	huePoint.style.position = "absolute";
 	huePoint.style.border   = "0";
 	huePoint.style.zIndex   = "5";
-	huePoint.style.left  = -6.5 + this.red*255 + "px";
-	huePoint.style.top   = -6.5 + this.green*255 + "px";
+	huePoint.style.left  = -6.5 + this.red + "px";
+	huePoint.style.top   = -6.5 + this.green + "px";
 	huePoint.src = "colorPicker/mappoint.gif";
 	document.getElementById(colorMap.id).appendChild(huePoint);
 	
@@ -164,7 +164,7 @@ ColorPicker.prototype.createBlueWidget = function() {
 	rangeArrows.style.border   = "0";
 	rangeArrows.style.zIndex   = "5";
 	rangeArrows.style.left  = "0%";
-	rangeArrows.style.top   = -4.5 + this.blue*255 + "px";
+	rangeArrows.style.top   = -4.5 + this.blue + "px";
 	rangeArrows.src = "colorPicker/rangearrows.gif";
 	document.getElementById(blueDiv.id).appendChild(rangeArrows);
 	
@@ -223,7 +223,7 @@ ColorPicker.prototype.createAlphaWidget = function() {
 	rangeArrows.style.border   = "0";
 	rangeArrows.style.zIndex   = "5";
 	rangeArrows.style.left  = "0%";
-	rangeArrows.style.top   = -4.5 + this.alpha*255 + "px";
+	rangeArrows.style.top   = -4.5 + this.alpha + "px";
 	rangeArrows.src = "colorPicker/rangearrows.gif";
 	document.getElementById(alphaDiv.id).appendChild(rangeArrows);
 	
@@ -231,7 +231,7 @@ ColorPicker.prototype.createAlphaWidget = function() {
 	
 	var listener = function(event, alphaWidget) {
 		rangeArrows.style.top   = event.offsetY - 4,5;
-		self.alpha = (event.offsetY + 1)/(alphaCanvas.height);
+		self.alpha = (event.offsetY + 1);
 		self.update();
 	};
 	
@@ -259,5 +259,5 @@ ColorPicker.prototype.createGradientPattern = function() {
 };
 
 ColorPicker.prototype.getColor = function() {
-	return {'color': new Color(this.red/255, this.green/255, this.blue/255), 'a': this.alpha};
+	return {'color': new Color(this.red, this.green, this.blue), 'a': this.alpha};
 };

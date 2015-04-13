@@ -24,10 +24,6 @@ function Controller() {
 	this.resetCamera = this.resetCamera(this);
 	$("#resetCamButton").click(this.resetCamera);
 
-	this.gradientEditor = new GradientEditor();
-
-	this.gradientEditor.clear();
-
 	this.handleMouseMove = this.handleMouseMove(this);
 
 	this.mouseWheelHandler = this.mouseWheelHandler(this);
@@ -143,8 +139,6 @@ Controller.prototype.saveTransfer = function(selfController) {
 		window.requestFileSystem(window.TEMPORARY, 1024*1024, function(fs) {
 			fs.root.getFile('transfer.trf', {create: true}, function(fileEntry) {
 				fileEntry.createWriter(function(fileWriter) {
-
-
 					var blob = new Blob([app.raycaster.transfer.serialize()]);
 
 					fileWriter.addEventListener("writeend", function() {
@@ -161,7 +155,6 @@ Controller.prototype.saveTransfer = function(selfController) {
 
 Controller.prototype.loadTransfer = function(selfController) {
 	return function (event) {
-
 		var files = event.target.files;
 		if (!files.length) {
 			alert('Please select a file!');
@@ -169,13 +162,12 @@ Controller.prototype.loadTransfer = function(selfController) {
 		}
 
 		var file = files[0];
-
 		var reader = new FileReader();
-
 		reader.onloadend = function(evt) {
 			if (evt.target.readyState == FileReader.DONE) {
-				var Float32View = new Float32Array(evt.target.result);
-				app.raycaster.loadTransferBuffer(Float32View);
+				var uint8Array = new Uint8Array(evt.target.result);
+				app.raycaster.loadTransferBuffer(uint8Array);
+				selfController.gradientEditor.setTransfer(app.raycaster.transfer);
 			}
 		};
 
@@ -222,7 +214,7 @@ Controller.prototype.mouseWheelHandler = function(selfController) {
 Controller.prototype.loadDicom = function(selfController)	{
 	return function (event) {
 		if (event.target.files.length < 2) {
-			console.log('Necessário duas ou mais imagens');
+			console.log('Need 2 or more images');
 			return;
 		}
 
@@ -246,9 +238,13 @@ Controller.prototype.loadRAW = function(selfController)	{
 	};
 };
 
-Controller.prototype.updateTransferGradient = function(transfer)	{
-	this.gradientEditor.update(transfer);
+Controller.prototype.createGradient = function(transfer)	{
+	this.gradientEditor = new GradientEditor(transfer);
+	this.modified = true;
+};
 
+Controller.prototype.updateTransferGradient = function(transfer)	{
+	this.gradientEditor.update();
 	this.modified = true;
 };
 

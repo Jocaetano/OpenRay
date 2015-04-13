@@ -27,7 +27,7 @@ ImageLoader.loadImage = function(file) {
 		if(dataset.elements.x00280002)		info.samplesPerPixel		= dataset.uint16('x00280002', 0);
 		if(dataset.elements.x00180050)		info.sliceThickness			= dataset.floatString('x00180050', 0);
 		if(dataset.elements.x00200013)		info.sliceNum				= dataset.intString('x00200013', 0);
-		if(dataset.elements.x00280100)		info.depth					= dataset.uint16('x00280100', 0);
+		if(dataset.elements.x00280100)		info.bitsAllocated			= dataset.uint16('x00280100', 0);
 		if(dataset.elements.x00280010)		info.height					= dataset.uint16('x00280010', 0);
 		if(dataset.elements.x00280011) 		info.width					= dataset.uint16('x00280011', 0);
 		if(dataset.elements.x00281052)		info.rescaleIntercept		= dataset.floatString('x00281052', 0);
@@ -50,8 +50,8 @@ ImageLoader.loadImage = function(file) {
 
 	info.DicomImage = true;
 	
-	//There is probably a better way to get the pixelBuffer using the dicomParser 
-	var dicomImage = new DicomImage(info, new Uint16Array(file, dataset.elements.x7fe00010.dataOffset, dataset.elements.x7fe00010.length/2));
+	//There is probably a better way to get the pixelBuffer using the dicomParser - Found it, cornerstoneWADOImageLoader.extractUncompressedPixels(dataSet, width, height, frame)
+	var dicomImage = new DicomImage(info, new Uint16Array(file, dataset.elements.x7fe00010.dataOffset, info.size));
 	
 	return dicomImage;
 };

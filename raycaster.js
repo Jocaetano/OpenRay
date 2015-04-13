@@ -80,7 +80,7 @@ VolumeRaycaster.prototype.createVoxelFunction = function() {
 	shaderF += "float voxel(vec3 pos) {\n";
 	shaderF += "	float slice = pos.z * numberOfSlices;\n";
 	shaderF += "	vec3 rgb = voxelVolume(pos, " + this.slicesLength[0] + ".0, volumeTexture1, slice);\n";
-	shaderF += "	return ((rgb.g*65280.0 + rgb.r*255.0) * " + this.volume._rescaleSlope + ".0) + " + this.volume._rescaleIntercept +".0;\n";
+	shaderF += "	return ((rgb.g*65280.0 + rgb.r*255.0) * " + this.volume._rescaleSlope + ".0) + " + this.volume._rescale +".0;\n";
 	shaderF += "}";
 
 	if(this.numSlices > 1) {
@@ -101,7 +101,7 @@ VolumeRaycaster.prototype.createVoxelFunction = function() {
 			shaderF += "	else if(slice < " + (temp) + ".0) {\n"
 			shaderF += "		rgb = voxelVolumeIntersection(pos, " + Math.ceil(Math.sqrt(this.slicesLength[i-1])) + ".0, " + Math.ceil(Math.sqrt(this.slicesLength[i])) + ".0, volumeTexture" + i + ", volumeTexture" + (i+1) + ", slice - " + (temp - this.slicesLength[i - 1]) + ".0);\n"
 			shaderF += "	}\n"
-			shaderF += "	else if(slice < " + (temp + this.slicesLength[i] - 1) + ".0) {\n";
+				shaderF += "	else if(slice < " + (temp + this.slicesLength[i] - 1) + ".0) {\n";
 			shaderF += "		rgb = voxelVolume(pos, " + this.slicesLength[i] + ".0, volumeTexture" + (i+1) + ", slice - " + temp + ".0);\n"
 			shaderF += "	}\n";
 			temp += this.slicesLength[i];
@@ -113,7 +113,7 @@ VolumeRaycaster.prototype.createVoxelFunction = function() {
 		shaderF += "		rgb = voxelVolume(pos, " + this.slicesLength[i] + ".0, volumeTexture" + (i+1) + ", slice - " + (temp) + ".0);\n";
 		shaderF += "	}\n";
 
-		shaderF += "	return ((rgb.g*65280.0 + rgb.r*255.0) * " + this.volume._rescaleSlope + ".0) + " + this.volume._rescaleIntercept +".0;\n";
+		shaderF += "	return ((rgb.g*65280.0 + rgb.r*255.0) * " + this.volume._rescaleSlope + ".0) + " + this.volume._rescale +".0;\n";
 		shaderF += "}";
 	}
 	return shaderF;
@@ -127,6 +127,7 @@ VolumeRaycaster.prototype.setRaycastProgramVolume = function() {
 	console.log("Sampling steps: " + spacing);
 	console.log("Sampling step: " + samplingStep);
 	console.log("Box: " + box.width() + "  " + box.depth() + "  " + box.height());	
+	console.log("Número de slices : " + this.slicesLength.length);
 
 	this.raycastProgram.bind();
 	this.raycastProgram.uVolumeTexture = new Array();
@@ -144,7 +145,6 @@ VolumeRaycaster.prototype.setRaycastProgramVolume = function() {
 	gl.uniform1i(this.raycastProgram.uTransferFunctionTexture, ++i);
 	gl.uniform3f(this.raycastProgram.volumeSize, box.width(), box.depth(), box.height());
 	gl.uniform1f(this.raycastProgram.numberOfSlices, this.volume._imgContainer.length);
-	console.log("Número de slices : " + this.slicesLength.length);
 	gl.uniform1f(this.raycastProgram.samplingStep, samplingStep);
 	gl.uniform1f(this.raycastProgram.volumeSpacing, smallerSpacing);
 	gl.uniform1f(this.raycastProgram.dicomSize, this.volume._imageWidth);
@@ -315,7 +315,7 @@ function VolumeRaycaster(width, height, volume) {
 	this.createBuffers();
 	this.setVolume(volume);
 
-	this.light = new LightSource([0.0, -1.0, 0.0],  true, new Color(0.0, 0.0, 0.0, 1.0), new Color(1.0, 1.0, 1.0, 1.0), new Color(1.0, 1.0, 1.0, 1.0));
+	this.light = new LightSource([0.0, -1.0, 0.0],  true, new Color(0.0, 0.0, 0.0), new Color(1.0, 1.0, 1.0), new Color(1.0, 1.0, 1.0));
 
 	gl.enable(gl.DEPTH_TEST);
 	gl.enable(gl.BLEND);
@@ -382,55 +382,52 @@ VolumeRaycaster.prototype.setVolume = function(volume) {
 };
 
 VolumeRaycaster.prototype.loadTransferBuffer = function(transferBuffer) {
+	var dataView = new DataView(transferBuffer.buffer);
+	transfer = new TransferFunction(this.volume._minDensity, this.volume._maxDensity);
 
-	transfer = new TransferFunction();
+	var nStops = transferBuffer[0];
 
-	var size = transferBuffer[0];
-	transfer.setRange(transferBuffer[1], transferBuffer[5*(size-1) + 1]);
-
-	for(var i = 0; i < size; i++){
-		var position = (transferBuffer[5*i + 1] - transfer._min) / (transfer._max - transfer._min);
-		var color = new Color(transferBuffer[5*i + 2], transferBuffer[5*i + 3], transferBuffer[5*i + 4]);
-		transfer.insert(position, color, transferBuffer[5*i + 5]);
+	for(var i = 0; i < nStops; i++){
+		var position = (dataView.getFloat32(8*i + 1) - transfer._min) / (transfer._max - transfer._min);
+		var color = new Color(transferBuffer[8*i + 5], transferBuffer[8*i + 6], transferBuffer[8*i + 7], transferBuffer[8*i + 8]);
+		transfer.push(position, color);
 	}
 
+	transfer.addObserver(this);
 	this.transfer = transfer;
 
 	this.updateTransferFunctionTexture();
 };
 
 VolumeRaycaster.prototype.setTransfer = function(transfer) {
-
 	transfer.setRange(this.volume._minDensity, this.volume._maxDensity);
+	transfer.addObserver(this);
 	this.transfer = transfer;
 
 	this.updateTransferFunctionTexture();
 };
 
 VolumeRaycaster.prototype.setDefaultTransfer = function() {
-	transfer = new TransferFunction();
+	transfer = new TransferFunction(this.volume._minDensity, this.volume._maxDensity);
 
-	transfer.setRange(this.volume._minDensity, this.volume._maxDensity);
-	transfer.insert(0, new Color(0.0, 0.0, 0.0), 0.0);
-//	transfer.insert(0.02, new Color(0.25, 0.0, 0.0), 0.14);
-//	transfer.insert(0.06, new Color(1.0, 0.0, 0.0), 0.42);
-//	transfer.insert(0.08, new Color(0.5, 0.5, 0.0), 0.56);
-//	transfer.insert(0.1, new Color(1.0, 1.0, 1.0), 0.70);
-	transfer.insert(1, new Color(1.0, 1.0, 1.0), 1.0);
+	transfer.push(0, new Color(0, 0, 0, 0));
+	transfer.push(0.02, new Color(64, 0, 0, 36));
+	transfer.push(0.06, new Color(255, 0, 0, 107));
+	transfer.push(0.08, new Color(128, 128, 0, 143));
+	transfer.push(0.1, new Color(255, 255, 255, 179));
+	transfer.push(1, new Color(255, 255, 255, 255));
 
+	transfer.addObserver(this);
 	this.transfer = transfer;
 };
 
 VolumeRaycaster.prototype.updateTransferFunctionTexture = function() {
-	var data = new Uint8Array(this.transferFunctionSize*4);
-	for(var i = 0; i < this.transferFunctionSize; ++i){
-		var p = i/(this.transferFunctionSize - 1);
-		var c = this.transfer.color(p);
-		var a = this.transfer.alpha(p);
-		data[4 * i + 0] = c[0]*255;
-		data[4 * i + 1] = c[1]*255;
-		data[4 * i + 2] = c[2]*255;
-		data[4 * i + 3] = a*255;
+	var dataBuffer = new ArrayBuffer(this.transferFunctionSize*4);
+	var data = new Uint8Array(dataBuffer);
+	var data32 = new Uint32Array(dataBuffer);
+	for(var i = 0; i < this.transferFunctionSize; i++){
+		var position = i/(this.transferFunctionSize - 1);
+		data32[i] = this.transfer.getColorAt(position);
 	}
 
 	this.transferFunctionTexture.bind();
@@ -438,6 +435,8 @@ VolumeRaycaster.prototype.updateTransferFunctionTexture = function() {
 	this.raycastProgram.bind();
 	gl.uniform1f(this.raycastProgram.transferMinValue, this.transfer.getRangeMin());
 	gl.uniform1f(this.raycastProgram.transferRangeValue, this.transfer.getRangeMax() - this.transfer.getRangeMin());
+};
 
-	controller.updateTransferGradient(this.transfer);
+VolumeRaycaster.prototype._observedUpdate = function() {
+	this.updateTransferFunctionTexture();
 };

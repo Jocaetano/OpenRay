@@ -58,18 +58,20 @@ GLTexture2D.prototype.loadFromVolume = function(volume) {
 	//bytesRow is the number of bytes in a row of a single image
 	var bytesRow = dicomSize*3;
 
-	var dataTexture = new Uint8Array(dicomSize*dicomSize*length*length*3);
-	var dataImage = new Uint8Array(dicomSize*bytesRow + (32 - (dicomSize*bytesRow % 32)));
+	//maybe it's faster if we use only one ArrauBuffer; see mdn TypedArray.prototype.set()
+	var imageSizeBytes = dicomSize*bytesRow;
+	var dataBuffer = new ArrayBuffer(imageSizeBytes + imageSizeBytes*length*length);
+	var dataImage = new Uint8Array(dataBuffer, 0, imageSizeBytes);
+	var dataTexture = new Uint8Array(dataBuffer, imageSizeBytes, imageSizeBytes*length*length);
 
 	for(var i = 0; i < volume._imgContainer.length; i++) {
 		volume._imgContainer[i].generateRGBData(dataImage);
 		var columnOffset  = (i % length) * bytesRow;
 		var rowOffset = Math.floor(i/length) * dicomSize;
 		for(var rowTexture = rowOffset, rowImage = 0; rowImage < dicomSize; rowTexture++, rowImage++) {
-			dataTexture.set(new Uint8Array(dataImage.buffer, bytesRow*rowImage, bytesRow), rowTexture*bytesRow*length + columnOffset);
+			dataTexture.set(new Uint8Array(dataBuffer, bytesRow*rowImage, bytesRow), rowTexture*bytesRow*length + columnOffset);
 		}
 	}
-
 	this.updatePixels(dataTexture, gl.RGB);
 };
 

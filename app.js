@@ -47,6 +47,7 @@ App.prototype.setVolume = function(volume) {
 App.prototype.createRaycaster = function() {
 	if(!this.running) {
 		this.raycaster = new VolumeRaycaster(gl.viewportWidth, gl.viewportHeight, this.volume);
+		controller.createGradient(this.raycaster.transfer);
 		this.running = true;
 	} else {
 		this.raycaster.setVolume(this.volume);

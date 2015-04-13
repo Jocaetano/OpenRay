@@ -1,109 +1,82 @@
-function GradientEditor() {
-	this.canvas = document.getElementById('transferGradient');
-	this.context = this.canvas.getContext('2d');
+function GradientEditor(transfer) {
+	this.transfer = transfer;
+	this.gradientCanvas = document.getElementById('transferGradient');
+	this.context = this.gradientCanvas.getContext('2d');
 
-	this.stopCanvas = document.getElementById('stopPoints');
-	this.stopContext = this.stopCanvas.getContext('2d');
+	this.stopPointsCanvas = document.getElementById('stopPoints');
+	this.stopContext = this.stopPointsCanvas.getContext('2d');
 
 	this.stopMouseDown = false;
-	this.stopCanvas.addEventListener("mousedown", this.stopCanvasMouseDownHandler(this), false);
+	this.stopPointsCanvas.addEventListener("mousedown", this.stopCanvasMouseDownHandler(this), false);
 
 	var self = this;
-	
+
 	this.handleMouseMove = this.handleMouseMove(this);
 	document.addEventListener("mouseup", function(event) {
 		self.stopMouseDown = false; document.removeEventListener("mousemove", self.handleMouseMove, false);
 	}, false);
+	
+	this.update();
+}
+
+GradientEditor.prototype.update = function()	{
+	this.clear();
+	this.context.rect(0, 0, this.gradientCanvas.width, this.gradientCanvas.height);
+
+	this.grd = this.context.createLinearGradient(0, 0, this.gradientCanvas.width, 0);
+
+	for(var i = 0; i < this.transfer._intervals.length; i++) {
+		var position = this.transfer._intervals[i];
+		var color = transfer._colors[i];
+		this.addStopPoint(position, color);
+	}
+
+	this.context.fillStyle = this.grd;
+	this.context.fill();
+	
+	controller.modified = true;
+};
+
+GradientEditor.prototype.setTransfer = function(transfer)	{
+	this.transfer = transfer;
+	this.update();
 }
 
 GradientEditor.prototype.clear = function() {
-
 	this.context.fillStyle = ColorPicker.prototype.createGradientPattern();
-	this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
+	this.context.fillRect(0, 0, this.gradientCanvas.width, this.gradientCanvas.height);
 
-	this.stopContext.clearRect(0, 0, this.stopCanvas.width, this.stopCanvas.height);
+	this.stopContext.clearRect(0, 0, this.stopPointsCanvas.width, this.stopPointsCanvas.height);
 };
 
-GradientEditor.prototype.update = function(transfer)	{
-	this.clear();
-	this.context.rect(0, 0, this.canvas.width, this.canvas.height);
-
-	var grd = this.context.createLinearGradient(0, 0, this.canvas.width, 0);
-
-	for(var i = 0; i < transfer._intervals.length; i++) {
-		var position = transfer._intervals[i];
-		var color = 'rgba(' + Math.round(transfer._colors[i].r*255) + ', ' + Math.round(transfer._colors[i].g*255) + ', ' + Math.round(transfer._colors[i].b*255) + ', ' + transfer._alphas[i] + ')';
-		grd.addColorStop(position, color);
-		this.addStopPoint({'position': position, 'color': transfer._colors[i]});
-	}
-
-	this.context.fillStyle = grd;
-	this.context.fill();
-
-	this.transfer = transfer;
-};
-
-GradientEditor.prototype.addStopPoint = function(stopPoint)	{
-//	var self = this;
-//	var temp = {
-//			layer: true,
-//			fillStyle: 'rgb(' + Math.round(stopPoint.color.r*255) + ', ' + Math.round(stopPoint.color.g*255) + ', ' + Math.round(stopPoint.color.b*255) + ')',
-//			x: stopPoint.position * this.stopCanvas.width, 
-//			y: this.stopCanvas.height/2,
-//			radius: 5, 
-//			strokeStyle: "black",
-//			strokeWidth: 1,
-//			mousedown : function(layer) {
-//				console.log(layer);
-//				self.stopMouseDown = true;
-//				self.mouseButton = 0;
-//				document.addEventListener("mousemove",  self.handleMouseMove, false);
-//			}, 
-//			mouseup : function(layer) {
-//				self.stopMouseDown = false; document.removeEventListener("mousemove", self.handleMouseMove, false);
-//			}
-//	};
-//
-//	$("#stopPoints").drawArc(temp);
+GradientEditor.prototype.addStopPoint = function(position, color)	{
+	this.grd.addColorStop(position, 'rgba(' + color.r + ', ' + color.g + ', ' + color.b + ', ' + color.a/255.0 + ')');
 	
-	
-	
-	
-	
-	
-	var h = 10 * (Math.sqrt(3)/2);
-
 	this.stopContext.strokeStyle = "black";
-
-	this.stopContext.translate(stopPoint.position * this.stopCanvas.width, this.stopCanvas.height/4);
+	this.stopContext.translate(position * this.stopPointsCanvas.width, this.stopPointsCanvas.height/4);
 
 	this.stopContext.beginPath();
-
+	var h = 10 * (Math.sqrt(3)/2);
 	this.stopContext.moveTo(0, -h/2);
 	this.stopContext.lineTo( -10/2, h/2);
 	this.stopContext.lineTo(10/2, h/2);
 	this.stopContext.lineTo(0, -h/2);
-
 	this.stopContext.stroke();
 	this.stopContext.fillStyle = "black";
 	this.stopContext.fill(); 
-
 	this.stopContext.closePath();
 
 	this.stopContext.beginPath();
-
 	this.stopContext.lineTo(-5, -h/2 + 10);
 	this.stopContext.lineTo(-5, h/2 + 10);
 	this.stopContext.lineTo(5, h/2 + 10);
 	this.stopContext.lineTo(5, -h/2 + 10);
-
 	this.stopContext.stroke();
-	this.stopContext.fillStyle = 'rgb(' + Math.round(stopPoint.color.r*255) + ', ' + Math.round(stopPoint.color.g*255) + ', ' + Math.round(stopPoint.color.b*255) + ')';
+	this.stopContext.fillStyle = 'rgb(' + Math.round(color.r) + ', ' + Math.round(color.g) + ', ' + Math.round(color.b) + ')';
 	this.stopContext.fill(); 
-
 	this.stopContext.closePath();
 
-	this.stopContext.translate(-stopPoint.position * this.stopCanvas.width, -this.stopCanvas.height/4);
+	this.stopContext.translate(-position * this.stopPointsCanvas.width, -this.stopPointsCanvas.height/4);
 };
 
 GradientEditor.prototype.stopCanvasMouseDownHandler = function(gradientEditor) {
@@ -112,9 +85,9 @@ GradientEditor.prototype.stopCanvasMouseDownHandler = function(gradientEditor) {
 
 		for(var i = 1; i < gradientEditor.transfer._intervals.length -1; i++) {
 			var position = transfer._intervals[i];
-			if((event.offsetX < gradientEditor.stopCanvas.width*position + 5) && (event.offsetX > gradientEditor.stopCanvas.width*position - 5)) {
+			if((event.offsetX < gradientEditor.stopPointsCanvas.width*position + 5) && (event.offsetX > gradientEditor.stopPointsCanvas.width*position - 5)) {
 				hitStopPoint = true;
-				gradientEditor.transfer.hit = i;
+				gradientEditor.stopPointSelected = i;
 				break;
 			}
 		}
@@ -124,42 +97,28 @@ GradientEditor.prototype.stopCanvasMouseDownHandler = function(gradientEditor) {
 			gradientEditor.mouseButton = event.button;
 			document.addEventListener("mousemove",  gradientEditor.handleMouseMove, false);
 		}	
-		else 	if(event.button == 2) {
+		else if(event.button == 2) {
 			var update = function() {
-				app.raycaster.transfer.update(gradientEditor.transfer.hit, 0, new Color(this.red/255, this.green/255, this.blue/255), this.alpha, true);
-				app.raycaster.updateTransferFunctionTexture();
+				gradientEditor.transfer.updateColor(gradientEditor.stopPointSelected, new Color(this.red, this.green, this.blue, this.alpha));
+				gradientEditor.update();
 			};
-			
-			var position = event.offsetX/gradientEditor.stopCanvas.width;
-			
-			var colorData = gradientEditor.transfer.color(position);
-			var color = new Color(colorData[0], colorData[1], colorData[2]);
-			var alpha = gradientEditor.transfer.alpha(position);
-			
-			new ColorPicker({'x': event.layerX, 'y': event.layerY}, "colorPicker", update, color, alpha);
+
+			var position = event.offsetX/gradientEditor.stopPointsCanvas.width;
+
+			var color32 = gradientEditor.transfer.getColorAt(position);
+			//Can we change this to something like Color.rgbaToColor() with modules?
+			var color = new Color((color32 & 0x000000FF), (color32 & 0x0000FF00) >> 8, (color32 & 0x00FF0000) >> 16, color32 >>> 24);
 
 			if(!hitStopPoint) {
-
-
-				gradientEditor.addStopPoint({'position': position, 'color': color});
-
-				app.raycaster.transfer.insert(position, color, alpha);
-
-				app.raycaster.updateTransferFunctionTexture();
-
-				for(var i = 1; i < gradientEditor.transfer._intervals.length -1; i++) {
-					var position = transfer._intervals[i];
-					if((event.offsetX < gradientEditor.stopCanvas.width*position + 5) && (event.offsetX > gradientEditor.stopCanvas.width*position - 5)) {
-						hitStopPoint = true;
-						gradientEditor.transfer.hit = i;
-						break;
-					}
-				}
+				gradientEditor.stopPointSelected = gradientEditor.transfer.insert(position, color);
+				gradientEditor.update();
 			}
-		}else 	if(event.button == 1 && hitStopPoint) {
-			app.raycaster.transfer.remove(gradientEditor.transfer.hit);
-
-			app.raycaster.updateTransferFunctionTexture();
+			
+			new ColorPicker({'x': event.layerX, 'y': event.layerY}, "colorPicker", update, color);
+		}
+		else if(event.button == 1 && hitStopPoint) {
+			gradientEditor.transfer.remove(gradientEditor.stopPointSelected);
+			gradientEditor.update();
 		}
 	};
 };
@@ -170,11 +129,12 @@ GradientEditor.prototype.handleMouseMove = function(gradientEditor) {
 
 		var value = event.offsetX/stopCanvas.width;
 
-		var changed = app.raycaster.transfer.update(gradientEditor.transfer.hit, value);
-		gradientEditor.transfer.hit = gradientEditor.transfer.hit + changed;
+		if(value <= 0.0 || value >= 1.0)
+			return;
 
-		app.raycaster.updateTransferFunctionTexture();
+		var newPosition = gradientEditor.transfer.moveColor(gradientEditor.stopPointSelected, value);
+		gradientEditor.update();
 
-		return;
+		gradientEditor.stopPointSelected = gradientEditor.stopPointSelected + newPosition;
 	};
 };
