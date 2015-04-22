@@ -34,43 +34,44 @@ GLTexture2D.prototype.getTextureID = function() {
 	return this.tex;
 };
 
-GLTexture2D.prototype.loadFromImage = function(imageURL) {
-	this.tex = gl.createTexture();
-	this.tex.image = new Image();
-	var self = this;
-	self.tex.image.onload = function() 	{
-		gl.bindTexture(gl.TEXTURE_2D, self.tex);
-		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, self.tex.image);
-		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-		gl.bindTexture(gl.TEXTURE_2D, null);
-	};
-	this.tex.image.src = imageURL;
-};
-
 GLTexture2D.prototype.loadFromVolume = function(volume) {
 	var dicomSize = volume._imageWidth;
 	//length is the number of images in a row of the final image matrix 
 	var length = Math.ceil(Math.sqrt(volume._imgContainer.length));
-	this.createTexture(dicomSize*length, dicomSize*length, gl.RGB);
-	//bytesRow is the number of bytes in a row of a single image
-	var bytesRow = dicomSize*3;
+	this.createTexture((dicomSize+2)*length, (dicomSize+2)*length, gl.RGB);
 
-	//maybe it's faster if we use only one ArrauBuffer; see mdn TypedArray.prototype.set()
+	//RGB
+	var bytesPerPixel = 3;
+	var align = 8;
+	while ((dicomSize+2)*bytesPerPixel*length % align) {
+		var align = align >> 1;
+	}
+	gl.pixelStorei(gl.UNPACK_ALIGNMENT, align);
+	//bytesRow is the number of bytes in a row of a single image
+	var bytesRow = dicomSize*bytesPerPixel;
+	var bytesRowT = (dicomSize+2)*bytesPerPixel;
+
+	//is it faster if we use only one ArrauBuffer?; see mdn TypedArray.prototype.set()
 	var imageSizeBytes = dicomSize*bytesRow;
-	var dataBuffer = new ArrayBuffer(imageSizeBytes + imageSizeBytes*length*length);
+	var dataBuffer = new ArrayBuffer(imageSizeBytes + (dicomSize+2)*bytesRowT*length*length);
 	var dataImage = new Uint8Array(dataBuffer, 0, imageSizeBytes);
-	var dataTexture = new Uint8Array(dataBuffer, imageSizeBytes, imageSizeBytes*length*length);
+	var dataTexture = new Uint8Array(dataBuffer, imageSizeBytes);
 
 	for(var i = 0; i < volume._imgContainer.length; i++) {
 		volume._imgContainer[i].generateRGBData(dataImage);
-		var columnOffset  = (i % length) * bytesRow;
-		var rowOffset = Math.floor(i/length) * dicomSize;
-		for(var rowTexture = rowOffset, rowImage = 0; rowImage < dicomSize; rowTexture++, rowImage++) {
-			dataTexture.set(new Uint8Array(dataBuffer, bytesRow*rowImage, bytesRow), rowTexture*bytesRow*length + columnOffset);
+		var columnOffset  = (i % length) * bytesRowT;
+		var rowOffset = Math.floor(i/length) * (dicomSize+2);
+		dataTexture.set(new Uint8Array(dataBuffer, 0, bytesPerPixel), rowOffset*bytesRowT*length+columnOffset);
+		dataTexture.set(new Uint8Array(dataBuffer, 0, bytesRow), rowOffset*bytesRowT*length+columnOffset+bytesPerPixel);
+		dataTexture.set(new Uint8Array(dataBuffer, bytesRow-bytesPerPixel, bytesPerPixel), rowOffset*bytesRowT*length+columnOffset+bytesRow+bytesPerPixel);
+		for(var rowTexture = rowOffset+1, rowImage = 0; rowImage < dicomSize; rowTexture++, rowImage++) {
+			dataTexture.set(new Uint8Array(dataBuffer, rowImage*bytesRow, bytesPerPixel), rowTexture*bytesRowT*length+columnOffset);
+			dataTexture.set(new Uint8Array(dataBuffer, rowImage*bytesRow, bytesRow), rowTexture*bytesRowT*length+columnOffset+bytesPerPixel);
+			dataTexture.set(new Uint8Array(dataBuffer, rowImage*bytesRow+(bytesRow-bytesPerPixel), bytesPerPixel), rowTexture*bytesRowT*length+columnOffset+bytesRow+bytesPerPixel);
 		}
+		dataTexture.set(new Uint8Array(dataBuffer, (rowImage-1)*bytesRow, bytesPerPixel), rowTexture*bytesRowT*length+columnOffset);
+		dataTexture.set(new Uint8Array(dataBuffer, (rowImage-1)*bytesRow, bytesRow), rowTexture*bytesRowT*length+columnOffset+bytesPerPixel);
+		dataTexture.set(new Uint8Array(dataBuffer, imageSizeBytes-bytesPerPixel, bytesPerPixel), rowTexture*bytesRowT*length+columnOffset+bytesRow+bytesPerPixel);
 	}
 	this.updatePixels(dataTexture, gl.RGB);
 };

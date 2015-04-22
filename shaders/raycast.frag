@@ -113,31 +113,26 @@ vec4 shade(vec4 sample, vec3 normal) {
 	return vec4(ambient + diffuse + specular, sample.a);
 }
 
-struct Ray {
-    vec3 _origin;
-    vec3 _dir;
-};
-
 void main() {
-	vec2 pos = gl_FragCoord.xy / textureSize.x;
-
 	vec4 rayStart = vColor;
 	if (rayStart.a == 0.0) {
 		discard;
 	}
 
-	vec4 rayEnd = texture2D(raysEndTexture, pos);
+	vec4 rayEnd = texture2D(raysEndTexture, (gl_FragCoord.xy / textureSize.x));
 
-	vec3 v = rayEnd.xyz - rayStart.xyz;
+	vec3 rayDirection = rayEnd.xyz - rayStart.xyz;
 
-	Ray ray = Ray(rayStart.xyz, normalize(normalize(v) * volumeSize) / volumeSize);
-	float rayLength = length(v * volumeSize);
-
-	vec4 color = vec4(0.0, 0.0, 0.0, 0.0);
-	float d = samplingStep * 0.5;
+	vec3 rayDirRelative = rayDirection * volumeSize;
+	float rayLength = length(rayDirRelative) + samplingStep;
 	
-	vec3 step = ray._dir * samplingStep;
-	vec3 rayPos = ray._origin;
+	vec3 rayDir = normalize(rayDirRelative) / volumeSize;
+
+	float d = samplingStep * 0.5;
+	vec3 step = rayDir * samplingStep;
+	
+	vec3 rayPos = rayStart.xyz + step;
+	vec4 color = vec4(0.0, 0.0, 0.0, 0.0);
 
 	for(float i = 0.0; i < 2000.0; i++) {
 		if(d > rayLength || color.a >= 1.0) 
