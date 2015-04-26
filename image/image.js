@@ -4,7 +4,6 @@ DicomImage = function(info, buffer) {
 	this.min = -1; //int16
 	this.max = -1; //int16
 
-	//Uint16Array
 	this.buffer = buffer;
 };
 
@@ -35,7 +34,10 @@ DicomImage.prototype.generateRGBData = function(array){
 		this.from8toRGB(array);
 		break;
 	case 16:
-		this.from16toRGB(array);
+		if(this.buffer instanceof Int16Array)
+			this.fromInt16toRGB(array);
+		else
+			this.fromUint16toRGB(array);
 		break;
 	case 24:
 		break;
@@ -47,7 +49,7 @@ DicomImage.prototype.generateRGBData = function(array){
 	}
 };
 
-DicomImage.prototype.from16toRGB = function(array){
+DicomImage.prototype.fromUint16toRGB = function(array){
 	//NEXT STEP, USE FLOAT64ARRAY TO READ
 //	var uint32view = new Uint32Array(array.buffer);
 //	//X0XX XX0X 0XX0     X => 1111 1111
@@ -56,7 +58,7 @@ DicomImage.prototype.from16toRGB = function(array){
 //	    uint32view[i+1] = this.buffer[i+j+1] >> 8 | this.buffer[i+j+2]  << 16;
 //	    uint32view[i+2] = this.buffer[i+j+3] << 8;
 //	}
-	
+
 	var buffer = new ArrayBuffer(2);
 	var int16View = new Uint16Array(buffer);
 	var int8View = new Uint8Array(buffer);	
@@ -70,11 +72,30 @@ DicomImage.prototype.from16toRGB = function(array){
 	}
 };
 
-DicomImage.prototype.from8toRGB = function(array){
-	for(var i = 0; i < this.imageInfo.size; ++i)    {
+DicomImage.prototype.fromInt16toRGB = function(array){
+	var buffer = new ArrayBuffer(2);
+	var int16View = new Int16Array(buffer);
+	var int8View = new Uint8Array(buffer);	
+
+	for(var i = 0; i < this.imageInfo.size; ++i)    {      
+		int16View[0] = this.buffer[i] - this.min;
 		index = 3*i;
-		array[index] = this.buffer[i];
+		array[index] = int8View[0];
+		array[index+1] = int8View[1];
 	}
+};
+
+DicomImage.prototype.from8toRGB = function(array){
+	if(this.imageInfo.invert)
+		for(var i = 0; i < this.imageInfo.size; ++i)    {
+			index = 3*i;
+			array[index] = !this.buffer[i];
+		}
+	else
+		for(var i = 0; i < this.imageInfo.size; ++i)    {
+			index = 3*i;
+			array[index] = this.buffer[i];
+		}
 };
 
 //operation moved to gpu
