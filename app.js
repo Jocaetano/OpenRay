@@ -41,17 +41,19 @@ App.prototype.setVolume = function(volume) {
 	this.volume = volume;
 
 	//SET DEFAULT TOOL
-	this.createRaycaster();
-};
-
-App.prototype.createRaycaster = function() {
 	if(!this.running) {
-		this.raycaster = new VolumeRaycaster(gl.viewportWidth, gl.viewportHeight, this.volume);
-		controller.createGradient(this.raycaster.transfer);
-		this.running = true;
+		this.createRaycaster();
 	} else {
 		this.raycaster.setVolume(this.volume);
 	}
+
+	controller.modified = true;
+};
+
+App.prototype.createRaycaster = function() {
+	this.raycaster = new VolumeRaycaster(gl.viewportWidth, gl.viewportHeight, this.volume);
+	controller.createGradient(this.raycaster.transfer);
+	this.running = true;
 
 	tick();
 };
