@@ -1,19 +1,22 @@
-
-var translateX = 0.0;
-var translateY = 0.0;
-var zoom = 10;
-var objectRotationMatrix = mat4.create();
-
-var lastMouseX = 0.0;
-var lastMouseY = 0.0;
+/// <reference path="typings/jquery/jquery.d.ts"/>
+/* global GradientEditor */
+/* global VolumeFactory */
+/* global ImageFactory */
+/* global mat4 */
+/* global app */
 
 function Controller() {
-	var canvas = document.getElementById("raywebgl");
-	initGL(canvas);
-
 	var self = this;
 	
-	$("a").click(function() {
+	this.translateX = 0.0;
+	this.translateY = 0.0;
+	this.zoom = 10;
+	this.objectRotationMatrix = mat4.create();
+	
+	this.lastMouseX = 0.0;
+	this.lastMouseY = 0.0;
+
+	$("a").click(function () {
 		$(".tabbed_content").show();
 	});
 
@@ -27,20 +30,21 @@ function Controller() {
 	this.handleMouseMove = this.handleMouseMove(this);
 
 	this.mouseWheelHandler = this.mouseWheelHandler(this);
-	canvas.addEventListener("mousewheel", this.mouseWheelHandler , false);
-	canvas.addEventListener("DOMMouseScroll", this.mouseWheelHandler , false);
+
+	var canvas = $("#raywebgl");
+	canvas.mousewheel(this.mouseWheelHandler);
 
 	this.mouseDownHandler = this.mouseDownHandler(this);
-	canvas.addEventListener("mousedown", this.mouseDownHandler, false);
+	canvas.mousedown(this.mouseDownHandler);
 
 	this.mouseUpHandler = this.mouseUpHandler(this);
-	document.addEventListener("mouseup", this.mouseUpHandler, false);
+	$(document).mouseup(this.mouseUpHandler);
 
 	this.loadDicom = this.loadDicom(this);
-	document.getElementById('dicomFiles').addEventListener('change', this.loadDicom, false);
-	
+	$("#dicomFiles").change(this.loadDicom);
+
 	this.loadRAW = this.loadRAW(this);
-	document.getElementById('rawFile').addEventListener('change', this.loadRAW, false);
+	$("#rawFile").change(this.loadRAW);
 
 	var slider = document.getElementById('lightX');
 	this.updateSliderX = this.updateSlider(0, slider, this);
@@ -54,52 +58,53 @@ function Controller() {
 	this.updateSliderZ = this.updateSlider(2, slider, this);
 	slider.addEventListener('input', this.updateSliderZ, false);
 
-	document.addEventListener("keyup", function(event) {
+	$(document).keyup(function(event) {
 		switch(event.keyCode) {
-		case 81: // Q
-			app.raycaster.changeRes(512, 512);
-			break;
-		case 87: // W
-			app.raycaster.changeRes(1024, 1024);
-			break;
-		case 69: // E
-			app.raycaster.changeRes(2048, 2048);
-			break;
-		case 82: // R
-			app.raycaster.changeRes(4096, 4096);
-			break;
-		case 48: // 0
-			self.resetCamera();
-			break;
-		case 65: // A
-			raycasterStart("askDicomImages");
-			break;
-		case 90: // Z
-			raycasterStart("askRAW");
-			break;
-		case 84: // T
-			document.getElementById('loadButton').click();
-			break;
-		case 49: // 1
-			app.raycaster.changeResultTexture(); 
-			break;
+			case 81: // Q
+				app.raycaster.changeRes(512, 512);
+				break;
+			case 87: // W
+				app.raycaster.changeRes(1024, 1024);
+				break;
+			case 69: // E
+				app.raycaster.changeRes(2048, 2048);
+				break;
+			case 82: // R
+				app.raycaster.changeRes(4096, 4096);
+				break;
+			case 48: // 0
+				self.resetCamera();
+				break;
+			case 65: // A
+				$("#dicomFiles").click();
+				break;
+			case 90: // Z
+				self.showRawFileForm();
+				break;
+			case 84: // T
+				$("#loadButton").click();
+				break;
+			case 49: // 1
+				app.raycaster.changeResultTexture();
+				break;
 		}
-		self.modified = true; 
-	}, false);
+		self.modified = true;
+	});
 
-	document.getElementById('dicomButton').addEventListener('click', function() {
-		raycasterStart("askDicomImages"); self.modified = true; 
-	}, false);
-	
-	document.getElementById('rawButton').addEventListener('click', function() {
-		raycasterStart("askRAW"); self.modified = true; 
-	}, false);
+	$("#dicomButton").click(function() {
+		$("#dicomFiles").click(); self.modified = true;
+	});
+
+	$("#rawButton").click(this.showRawFileForm);
+	$('#submitRaw').click(function() {
+		$("#rawFile").click(); self.modified = true;
+	});
 
 	this.saveTransfer = this.saveTransfer(this);
-	document.getElementById('saveButton').addEventListener('click', this.saveTransfer, false);
+	$("#saveButton").click(this.saveTransfer);
 
 	this.loadTransfer = this.loadTransfer(this);
-	document.getElementById('loadButton').addEventListener('change', this.loadTransfer, false);
+	$("#loadButton").change(this.loadTransfer);
 
 	var phongCheckBox = document.getElementById('usePhong');
 	var alphaGradientCheckBox = document.getElementById('useAlphaGradient');
@@ -117,11 +122,13 @@ Controller.prototype.updateCheckBox = function(phongCheckBox, alphaGradientCheck
 
 Controller.prototype.resetCamera = function(selfController) {
 	return function() {
-		translateX = 0.0;
-		translateY = 0.0;
-		zoom = 10;
-		mat4.identity(objectRotationMatrix);
-		
+		selfController.translateX = 0.0;
+		selfController.translateY = 0.0;
+		selfController.zoom = 10;
+		mat4.identity(selfController.objectRotationMatrix);
+		app.raycaster.moveCamera(selfController.translateX, selfController.translateY, selfController.zoom);
+		app.raycaster.rotateCamera(selfController.objectRotationMatrix);
+
 		selfController.modified = true;
 	};
 };
@@ -134,11 +141,11 @@ Controller.prototype.updateSlider = function(index, slider, selfController) {
 };
 
 Controller.prototype.saveTransfer = function(selfController) {
-	return function (event) {
-		window.requestFileSystem  = window.requestFileSystem || window.webkitRequestFileSystem;    
+	return function(event) {
+		window.requestFileSystem = window.requestFileSystem || window.webkitRequestFileSystem;
 
-		window.requestFileSystem(window.TEMPORARY, 1024*1024, function(fs) {
-			fs.root.getFile('transfer.trf', {create: true}, function(fileEntry) {
+		window.requestFileSystem(window.TEMPORARY, 1024 * 1024, function(fs) {
+			fs.root.getFile('transfer.trf', { create: true }, function(fileEntry) {
 				fileEntry.createWriter(function(fileWriter) {
 					var blob = new Blob([app.raycaster.transfer.serialize()]);
 
@@ -174,34 +181,34 @@ Controller.prototype.loadTransfer = function(selfController) {
 
 		var blob = file.slice(0, file.size);
 		reader.readAsArrayBuffer(blob);
-
 	};
 };
 
 Controller.prototype.mouseUpHandler = function(selfController) {
 	return function (event) {
-		selfController.canvasMouseDown = false; 
-		selfController.stopMouseDown = false; 
-		document.removeEventListener("mousemove", selfController.handleMouseMove, false);
+		selfController.canvasMouseDown = false;
+		selfController.stopMouseDown = false;
+		$(document).off("mousemove", selfController.handleMouseMove);
 	};
 };
 
 Controller.prototype.mouseDownHandler = function(selfController) {
 	return function (event) {
 		selfController.canvasMouseDown = true;
-		lastMouseX = event.clientX;
-		lastMouseY = event.clientY;
+		selfController.lastMouseX = event.clientX;
+		selfController.lastMouseY = event.clientY;
 		selfController.mouseButton = event.button;
-		document.addEventListener("mousemove",  selfController.handleMouseMove, false);
+		$(document).mousemove(selfController.handleMouseMove);
 	};
 };
 
 Controller.prototype.mouseWheelHandler = function(selfController) {
 	return function (event) {
-		var evt = window.event || event ;//equalize event object
+		var evt = window.event || event;//equalize event object
 		var delta = evt.detail ? evt.detail * (-1) : evt.wheelDelta;
 
-		zoom = -delta < 0 ? zoom = zoom * 0.9 : zoom * 1.1;
+		selfController.zoom = -delta < 0 ? selfController.zoom = selfController.zoom * 0.9 : selfController.zoom * 1.1;
+		app.raycaster.moveCamera(selfController.translateX, selfController.translateY, selfController.zoom);
 
 		selfController.modified = true;
 
@@ -212,7 +219,7 @@ Controller.prototype.mouseWheelHandler = function(selfController) {
 	};
 };
 
-Controller.prototype.loadDicom = function(selfController)	{
+Controller.prototype.loadDicom = function(selfController) {
 	return function (event) {
 		if (event.target.files.length < 2) {
 			console.log('Need 2 or more images');
@@ -225,62 +232,77 @@ Controller.prototype.loadDicom = function(selfController)	{
 	};
 };
 
-Controller.prototype.loadRAW = function(selfController)	{
+Controller.prototype.loadRAW = function(selfController) {
 	return function (event) {
-		
+
+		var pixelSpacing = { x: parseFloat($("#psX").val()), y: parseFloat($("#psY").val()), z: parseFloat($("#psZ").val()) };
+		var volumeSize = { width: parseInt($("#width").val(), 10), height: parseInt($("#height").val(), 10), nslices: parseInt($("#nslices").val(), 10) };
+		var bits = $('input[name=bits]:checked', '#rawFileForm').val();
+
 		var reader = new FileReader();
-		reader.onload = function(evt)     {
-			var pixelSpacing = {x : 1, y : 1, z : 1};
-			app.setVolume(VolumeFactory.createVolumefromRaw(evt.target.result, 1, 300, 300, 300, pixelSpacing));
+		reader.onload = function(evt) {
+			app.setVolume(VolumeFactory.createVolumefromRaw(evt.target.result, bits, volumeSize, pixelSpacing));
 		};
 		reader.readAsArrayBuffer(event.target.files[0]);
 
+		selfController.hideRawFileForm();
 		selfController.modified = true;
 	};
 };
 
-Controller.prototype.createGradient = function(transfer)	{
+//Show rawFile popup
+Controller.prototype.showRawFileForm = function() {
+	$("#rawFileForm").css("display" , "block");
+};
+
+//Hide rawFile popup
+Controller.prototype.hideRawFileForm = function() {
+	$("#rawFileForm").css("display", "none");
+};
+
+Controller.prototype.createGradient = function(transfer) {
 	this.gradientEditor = new GradientEditor(transfer);
 	this.modified = true;
 };
 
-Controller.prototype.updateTransferGradient = function(transfer)	{
+Controller.prototype.updateTransferGradient = function(transfer) {
 	this.gradientEditor.update();
 	this.modified = true;
 };
 
 Controller.prototype.handleMouseMove = function(selfController) {
 	return function (event) {
-		if(selfController.canvasMouseDown) {
-			if(selfController.mouseButton == 2) {
-				var newX = event.clientX;
-				var newY = event.clientY;
+		if (selfController.canvasMouseDown) {
+			var newX = event.clientX;
+			var newY = event.clientY;
+			if (selfController.mouseButton == 2) {
 
-				var deltaX = newX - lastMouseX;
+				var deltaX = newX - selfController.lastMouseX;
 				var xRotationMatrix = mat4.create();
-				mat4.rotateY(xRotationMatrix, xRotationMatrix, (deltaX/60));
+				mat4.rotateY(xRotationMatrix, xRotationMatrix,(deltaX / 60));
 
-				var deltaY = newY - lastMouseY;
+				var deltaY = newY - selfController.lastMouseY;
 				var yRotationMatrix = mat4.create();
-				mat4.rotateX(yRotationMatrix, yRotationMatrix, (deltaY/60));
+				mat4.rotateX(yRotationMatrix, yRotationMatrix,(deltaY / 60));
 
 				var newRotationMatrix = mat4.create();
 				mat4.multiply(newRotationMatrix, xRotationMatrix, yRotationMatrix);
 
-				mat4.multiply(objectRotationMatrix, newRotationMatrix, objectRotationMatrix);
+				mat4.multiply(selfController.objectRotationMatrix, newRotationMatrix, selfController.objectRotationMatrix);
 
-				lastMouseX = newX;
-				lastMouseY = newY;
+				selfController.lastMouseX = newX;
+				selfController.lastMouseY = newY;
+				
+				app.raycaster.rotateCamera(selfController.objectRotationMatrix);
 			}
-			if(selfController.mouseButton == 1) {
-				var newX = event.clientX;
-				var newY = event.clientY;
+			if (selfController.mouseButton == 1) {
+				selfController.translateX += (newX - selfController.lastMouseX);
+				selfController.translateY -= (newY - selfController.lastMouseY);
 
-				translateX += (newX - lastMouseX);
-				translateY -= (newY - lastMouseY);
-
-				lastMouseX = newX;
-				lastMouseY = newY;
+				selfController.lastMouseX = newX;
+				selfController.lastMouseY = newY;
+				
+				app.raycaster.moveCamera(selfController.translateX, selfController.translateY, selfController.zoom);
 			}
 			selfController.modified = true;
 		}

@@ -1,3 +1,5 @@
+/* global vec3 */
+/* global gl */
 
 VolumeRaycaster.prototype.initVolumeProgram = function() {
 	var volumeProgram = new GpuProgram();
@@ -98,11 +100,11 @@ VolumeRaycaster.prototype.createVoxelFunction = function() {
 		var temp = this.slicesLength[0];
 		var i = 1;
 		for(; i < this.numSlices - 1; i++) {
-			shaderF += "	else if(slice < " + (temp) + ".0) {\n"
-			shaderF += "		rgb = voxelVolumeIntersection(pos, " + Math.ceil(Math.sqrt(this.slicesLength[i-1])) + ".0, " + Math.ceil(Math.sqrt(this.slicesLength[i])) + ".0, volumeTexture" + i + ", volumeTexture" + (i+1) + ", slice - " + (temp - this.slicesLength[i - 1]) + ".0);\n"
-			shaderF += "	}\n"
+			shaderF += "	else if(slice < " + (temp) + ".0) {\n";
+			shaderF += "		rgb = voxelVolumeIntersection(pos, " + Math.ceil(Math.sqrt(this.slicesLength[i-1])) + ".0, " + Math.ceil(Math.sqrt(this.slicesLength[i])) + ".0, volumeTexture" + i + ", volumeTexture" + (i+1) + ", slice - " + (temp - this.slicesLength[i - 1]) + ".0);\n";
+			shaderF += "	}\n";
 				shaderF += "	else if(slice < " + (temp + this.slicesLength[i] - 1) + ".0) {\n";
-			shaderF += "		rgb = voxelVolume(pos, " + this.slicesLength[i] + ".0, volumeTexture" + (i+1) + ", slice - " + temp + ".0);\n"
+			shaderF += "		rgb = voxelVolume(pos, " + this.slicesLength[i] + ".0, volumeTexture" + (i+1) + ", slice - " + temp + ".0);\n";
 			shaderF += "	}\n";
 			temp += this.slicesLength[i];
 		}
@@ -162,7 +164,7 @@ VolumeRaycaster.prototype.initVolumeBuffer = function() {
 
 	var box = this.volume.boundingBox();
 	box.translate(box.center());
-	vertices = [
+	var vertices = [
 	            (box.corner(7)[0]), (box.corner(7)[1]), (box.corner(7)[2]),
 	            (box.corner(6)[0]), (box.corner(6)[1]), (box.corner(6)[2]),
 	            (box.corner(5)[0]), (box.corner(5)[1]), (box.corner(5)[2]),
@@ -176,7 +178,7 @@ VolumeRaycaster.prototype.initVolumeBuffer = function() {
 	gl.bindBuffer(gl.ARRAY_BUFFER, this.cubeVertexPositionBuffer);
 	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
 
-	colors = [
+	var colors = [
 	          0.0, 0.0, 0.0, 1.0,
 	          1.0, 0.0, 0.0, 1.0,
 	          0.0, 1.0, 0.0, 1.0,
@@ -190,7 +192,7 @@ VolumeRaycaster.prototype.initVolumeBuffer = function() {
 	gl.bindBuffer(gl.ARRAY_BUFFER, this.cubeVertexColorBuffer);
 	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
 
-	cubeVertexIndices = [
+	var cubeVertexIndices = [
 	                     2, 0, 4,   2, 4, 6,	// Left face
 	                     1, 0, 2,   1, 2, 3,	// Bottom face
 	                     0, 5, 4,   0, 1, 5,	// Front face
@@ -219,8 +221,8 @@ VolumeRaycaster.prototype.castRays = function() {
 	this.transferFunctionTexture.bind(++i);
 
 	var cam = vec3.fromValues(0.0, 0.0, 1.0);
-	vec3.add(cam, cam, vec3.fromValues(translateX, translateY, -800.0));
-	vec3.transformMat4(cam, cam, objectRotationMatrix);
+	vec3.add(cam, cam, vec3.fromValues(this.translateX, this.translateY, -800.0));
+	vec3.transformMat4(cam, cam, this.objectRotationMatrix);
 	vec3.normalize(cam, cam);
 
 	this.raycastProgram.bind();
@@ -231,7 +233,7 @@ VolumeRaycaster.prototype.castRays = function() {
 	gl.uniform3f(this.raycastProgram.lightSpecularColor, this.light._specular.r, this.light._specular.g, this.light._specular.b);
 	gl.uniform1f(this.raycastProgram.lightShininess, 32.0);
 
-	gl.uniformMatrix4fv(this.raycastProgram.rotMatrixUniform, false, objectRotationMatrix);
+	gl.uniformMatrix4fv(this.raycastProgram.rotMatrixUniform, false, this.objectRotationMatrix);
 
 	this.drawVolumeBuffer(this.raycastProgram);
 
@@ -240,7 +242,7 @@ VolumeRaycaster.prototype.castRays = function() {
 
 VolumeRaycaster.prototype.drawVolumeBuffer = function(program) {
 	gl.viewport(0, 0, this.width, this.height);
-	mat4.frustum(this.pMatrix, -10*zoom, 10*zoom, -10*zoom, 10*zoom, 200, 2500.0);
+	mat4.frustum(this.pMatrix, -10*this.zoom, 10*this.zoom, -10*this.zoom, 10*this.zoom, 200, 2500.0);
 //	mat4.perspective(this.pMatrix, 45, 1, 200, 2500);
 
 	program.bind();
@@ -271,8 +273,8 @@ VolumeRaycaster.prototype.draw = function() {
 	gl.clearColor(0.0, 0.0, 0.0, 0.0);
 
 	mat4.identity(this.mvMatrix);
-	mat4.translate(this.mvMatrix, this.mvMatrix, [translateX, translateY, -800.0]);
-	mat4.multiply(this.mvMatrix, this.mvMatrix, objectRotationMatrix);
+	mat4.translate(this.mvMatrix, this.mvMatrix, [this.translateX, this.translateY, -800.0]);
+	mat4.multiply(this.mvMatrix, this.mvMatrix, this.objectRotationMatrix);
 
 	this.calculateRayEnd();
 	this.castRays();
@@ -314,6 +316,11 @@ function VolumeRaycaster(width, height, volume) {
 
 	this.createBuffers();
 	this.setVolume(volume);
+	
+	this.translateX = 0.0;
+	this.translateY = 0.0;
+	this.zoom = 10;
+	this.objectRotationMatrix = mat4.create();
 
 	this.light = new LightSource([0.0, -1.0, 0.0],  true, new Color(0.0, 0.0, 0.0), new Color(1.0, 1.0, 1.0), new Color(1.0, 1.0, 1.0));
 
@@ -330,6 +337,16 @@ VolumeRaycaster.prototype.restartProgram = function(usePhongShading, useAlphaGra
 
 VolumeRaycaster.prototype.changeLightDirection = function(index, value) {
 	this.light._position[index] = value;
+};
+
+VolumeRaycaster.prototype.moveCamera = function(translateX, translateY, zoom) {
+	this.translateX = translateX;
+	this.translateY = translateY;
+	this.zoom = zoom;
+};
+
+VolumeRaycaster.prototype.rotateCamera = function(objectRotationMatrix) {
+	this.objectRotationMatrix = objectRotationMatrix;
 };
 
 VolumeRaycaster.prototype.setVolume = function(volume) {
@@ -383,7 +400,7 @@ VolumeRaycaster.prototype.setVolume = function(volume) {
 
 VolumeRaycaster.prototype.loadTransferBuffer = function(transferBuffer) {
 	var dataView = new DataView(transferBuffer.buffer);
-	transfer = new TransferFunction(this.volume._minDensity, this.volume._maxDensity);
+	var transfer = new TransferFunction(this.volume._minDensity, this.volume._maxDensity);
 
 	var nStops = transferBuffer[0];
 
@@ -408,7 +425,7 @@ VolumeRaycaster.prototype.setTransfer = function(transfer) {
 };
 
 VolumeRaycaster.prototype.setDefaultTransfer = function() {
-	transfer = new TransferFunction(this.volume._minDensity, this.volume._maxDensity);
+	var transfer = new TransferFunction(this.volume._minDensity, this.volume._maxDensity);
 
 	transfer.push(0, new Color(0, 0, 0, 0));
 	transfer.push(0.02, new Color(64, 0, 0, 36));

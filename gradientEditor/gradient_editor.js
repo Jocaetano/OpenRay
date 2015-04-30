@@ -27,13 +27,14 @@ GradientEditor.prototype.update = function()	{
 
 	for(var i = 0; i < this.transfer._intervals.length; i++) {
 		var position = this.transfer._intervals[i];
-		var color = transfer._colors[i];
+		var color = this.transfer._colors[i];
 		this.addStopPoint(position, color);
 	}
 
 	this.context.fillStyle = this.grd;
 	this.context.fill();
 	
+	//TODO remove this
 	controller.modified = true;
 };
 
@@ -84,8 +85,8 @@ GradientEditor.prototype.stopCanvasMouseDownHandler = function(gradientEditor) {
 		var hitStopPoint = false;
 
 		for(var i = 1; i < gradientEditor.transfer._intervals.length -1; i++) {
-			var position = transfer._intervals[i];
-			if((event.offsetX < gradientEditor.stopPointsCanvas.width*position + 5) && (event.offsetX > gradientEditor.stopPointsCanvas.width*position - 5)) {
+			var interval = gradientEditor.transfer._intervals[i];
+			if((event.offsetX < gradientEditor.stopPointsCanvas.width*interval + 5) && (event.offsetX > gradientEditor.stopPointsCanvas.width*interval - 5)) {
 				hitStopPoint = true;
 				gradientEditor.stopPointSelected = i;
 				break;

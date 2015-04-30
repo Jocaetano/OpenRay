@@ -19,11 +19,8 @@ var app;
 function main() {
 	console.log("WebGLStart");
 
-	controller = new Controller();
-}
+	initGL(document.getElementById("raywebgl"));
 
-function raycasterStart(askVolume) {
-	app = app || new App();
-	
-	app[askVolume]();
+	controller = new Controller();
+	app = new App();
 }

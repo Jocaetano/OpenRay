@@ -1,13 +1,3 @@
-//function StopPoint(position, color, alpha) {
-//this.position = position;
-//this.color = color;
-//this.alpha = alpha;
-//}
-
-//StopPoint.prototype.stopPointOrderer = function(stopPointA, stopPointB) {
-//return stopPointA.position - stopPointB.position;
-//};
-
 function TransferFunction(min, max) {
 	this.nStops = 0;
 	this.size = max - min + 1;
@@ -23,11 +13,11 @@ function TransferFunction(min, max) {
 
 TransferFunction.prototype.addObserver = function(observer) {
 	this._observers.push(observer);
-}
+};
 
 TransferFunction.prototype.notifyObservers = function() {
 	this._observers.forEach(function(element) {element._observedUpdate();});
-}
+};
 
 TransferFunction.prototype.push = function(interval, color) {
 	this._intervals.push(interval);
@@ -35,7 +25,7 @@ TransferFunction.prototype.push = function(interval, color) {
 	this.nStops++;
 
 	this.notifyObservers();
-}
+};
 
 TransferFunction.prototype.insert = function(interval, color) {
 	var it = upper_bound(this._intervals, interval);
@@ -189,7 +179,7 @@ function lower_bound(array, value, begin, end) {
 	end = end || array.length;
 
 	if (array[0] == value)
-		return 0
+		return 0;
 	for (var i = begin; i < end; i++) {
 		if(array[i] >= value)
 			return i-1;
