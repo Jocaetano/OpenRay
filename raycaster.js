@@ -4,8 +4,8 @@
 VolumeRaycaster.prototype.initVolumeProgram = function() {
 	var volumeProgram = new GpuProgram();
 
-	volumeProgram._vertexShader.loadShaderFromURL('./shaders/shader.vert');
-	volumeProgram._fragShader.loadShaderFromURL('./shaders/shader.frag');
+	volumeProgram._vertexShader.loadShaderFromURL('../shaders/shader.vert');
+	volumeProgram._fragShader.loadShaderFromURL('../shaders/shader.frag');
 	volumeProgram.attachShaders();
 	volumeProgram.linkProgram();
 	volumeProgram.bind();
@@ -29,8 +29,8 @@ VolumeRaycaster.prototype.initRaycastProgram = function() {
 	if(this.useAlphaGradient)
 		raycastProgram._fragShader.addDirective("#define USE_GRADIENT_ON_ALPHA");
 
-	raycastProgram._vertexShader.loadShaderFromURL('./shaders/shader.vert');
-	raycastProgram._fragShader.loadShaderFromURL('./shaders/raycast.frag');
+	raycastProgram._vertexShader.loadShaderFromURL('../shaders/shader.vert');
+	raycastProgram._fragShader.loadShaderFromURL('../shaders/raycast.frag');
 
 	var shaderF = this.createVoxelFunction();
 

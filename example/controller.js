@@ -1,4 +1,4 @@
-/// <reference path="typings/jquery/jquery.d.ts"/>
+/// <reference path="../typings/jquery/jquery.d.ts"/>
 /* global GradientEditor */
 /* global VolumeFactory */
 /* global ImageFactory */
