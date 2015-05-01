@@ -243,7 +243,6 @@ VolumeRaycaster.prototype.castRays = function() {
 VolumeRaycaster.prototype.drawVolumeBuffer = function(program) {
 	gl.viewport(0, 0, this.width, this.height);
 	mat4.frustum(this.pMatrix, -10*this.zoom, 10*this.zoom, -10*this.zoom, 10*this.zoom, 200, 2500.0);
-//	mat4.perspective(this.pMatrix, 45, 1, 200, 2500);
 
 	program.bind();
 	gl.bindBuffer(gl.ARRAY_BUFFER, this.cubeVertexColorBuffer);
@@ -280,9 +279,11 @@ VolumeRaycaster.prototype.draw = function() {
 	this.castRays();
 };
 
-VolumeRaycaster.prototype.changeResultTexture = function() {
-	if(this.resultTexture == this.resultFBO.tex)
-		return this.resultTexture = this.endFBO.tex;
+VolumeRaycaster.prototype.changeResultTexture = function () {
+	if (this.resultTexture == this.resultFBO.tex) {
+		this.resultTexture = this.endFBO.tex;
+		return;
+	}
 	this.resultTexture = this.resultFBO.tex;
 };
 
@@ -392,7 +393,9 @@ VolumeRaycaster.prototype.setVolume = function(volume) {
 	this.raycastProgram = this.initRaycastProgram();
 	this.setRaycastProgramVolume();
 
-	if(!this.transfer)
+	if(this.transfer)
+		this.transfer.setRange(this.volume._minDensity, this.volume._maxDensity);
+	else
 		this.setDefaultTransfer();
 
 	this.updateTransferFunctionTexture();
