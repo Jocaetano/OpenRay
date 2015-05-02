@@ -112,19 +112,12 @@
 		<script type="text/javascript" src="colorPicker/color_picker.js"></script>
 		<script type="text/javascript" src="gradientEditor/gradient_editor.js"></script>
 		<script type="text/javascript" src="controller.js"></script>
-		<script type="text/javascript" src="app.js"></script>
-		<script type="text/javascript" src="main.js"></script>
+			
+		<script data-main="amd_app" src="../thirdy/require/require.js"></script>
 			
 	</head>
 	
-	<script>
-		function assert( outcome, description) {
-			var result = outcome ? 'pass' : 'fail';
-			console.log(result.toUpperCase() + " : " + description);
-		};
-	</script>
-	
-	<body oncontextmenu="return false;" onload="main()">
+	<body oncontextmenu="return false;">
 		
 		<canvas id="raywebgl" width="1024" height="1024"></canvas>
 			

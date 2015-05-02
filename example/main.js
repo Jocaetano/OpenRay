@@ -3,7 +3,7 @@ var gl;
 
 function initGL(canvas) {
 	try {
-		gl = canvas.getContext("webgl");
+		gl = WebGLUtils.setupWebGL(canvas);
 		gl.viewportWidth = canvas.width;
 		gl.viewportHeight = canvas.height;
 	} catch (e) {
@@ -16,11 +16,12 @@ function initGL(canvas) {
 var controller;
 var app;
 
-function main() {
+define(function(require) {
 	console.log("WebGLStart");
-
 	initGL(document.getElementById("raywebgl"));
 
 	controller = new Controller();
-	app = new App();
-}
+	require(['./app'], function (App) {
+		app = new App();
+	});
+});

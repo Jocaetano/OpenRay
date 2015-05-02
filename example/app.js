@@ -1,96 +1,106 @@
-App.prototype.initBuffers = function() {
-	Vertices = [
-	            0.0, 0.0, 	1.0, 0.0, 
-	            0.0, 1.0, 	1.0, 1.0, 
-	            ];
 
-	this.VboID = gl.createBuffer();
-	gl.bindBuffer(gl.ARRAY_BUFFER, this.VboID);
-	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(Vertices), gl.STATIC_DRAW);
-};
+define(function () {
+	//private
+	var _pMatrix = mat4.create();
+	var _program = initShaders();
+	var _VboID = initBuffers();
+	var _volume;
+	
+	function initBuffers() {
+		var Vertices = [
+			0.0, 0.0, 1.0, 0.0,
+			0.0, 1.0, 1.0, 1.0,
+		];
 
-App.prototype.initShaders = function() {
-	var shaderProgram = new GpuProgram();
-
-	shaderProgram._vertexShader.loadShaderFromURL('./shaders/appShader.vert');
-	shaderProgram._fragShader.loadShaderFromURL('./shaders/appShader.frag');
-	shaderProgram.attachShaders();
-	shaderProgram.linkProgram();
-	shaderProgram.bind();
-	shaderProgram.vertexPositionAttribute = shaderProgram.addAttribute("aVertexPosition");
-	gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
-	shaderProgram.pMatrixUniform = shaderProgram.addUniform("uPMatrix");
-
-	return shaderProgram;
-};
-
-App.prototype.drawScene = function() {
-	gl.disable(gl.CULL_FACE);
-
-	mat4.ortho(this.pMatrix, 0.0, 1.0, 0.0, 1.0, -1.0, 1.0);
-
-	this.program.bind();
-	gl.bindBuffer(gl.ARRAY_BUFFER, this.VboID);
-	gl.vertexAttribPointer(this.program.vertexPositionAttribute, 2, gl.FLOAT, gl.FALSE, 0, 0);
-	this.raycaster.resultTexture.bind(0);
-	gl.uniformMatrix4fv(this.program.pMatrixUniform, false, this.pMatrix);
-	gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-};
-
-App.prototype.setVolume = function(volume) {
-	this.volume = volume;
-
-	//SET DEFAULT TOOL
-	if(!this.running) {
-		this.createRaycaster();
-	} else {
-		this.raycaster.setVolume(this.volume);
+		var VboID = gl.createBuffer();
+		gl.bindBuffer(gl.ARRAY_BUFFER, VboID);
+		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(Vertices), gl.STATIC_DRAW);
+		
+		return VboID;
 	}
 
-	controller.modified = true;
-};
+	function initShaders() {
+		var shaderProgram = new GpuProgram();
 
-App.prototype.createRaycaster = function() {
-	this.raycaster = new VolumeRaycaster(gl.viewportWidth, gl.viewportHeight, this.volume);
-	controller.createGradient(this.raycaster.transfer);
-	this.running = true;
+		shaderProgram._vertexShader.loadShaderFromURL('./shaders/appShader.vert');
+		shaderProgram._fragShader.loadShaderFromURL('./shaders/appShader.frag');
+		shaderProgram.attachShaders();
+		shaderProgram.linkProgram();
+		shaderProgram.bind();
+		shaderProgram.vertexPositionAttribute = shaderProgram.addAttribute("aVertexPosition");
+		gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
+		shaderProgram.pMatrixUniform = shaderProgram.addUniform("uPMatrix");
 
-	tick();
-};
+		return shaderProgram;
+	}
+			
+	function drawScene() {
+		gl.disable(gl.CULL_FACE);
 
-App.prototype.stopRaycaster = function() {
-	this.runnning = false;
-};
+		mat4.ortho(_pMatrix, 0.0, 1.0, 0.0, 1.0, -1.0, 1.0);
 
-App.prototype.askDicomImages = function() {
-	// this is a "call" to loadDicom() on controller.js
-	document.getElementById('dicomFiles').click(); 
+		_program.bind();
+		gl.bindBuffer(gl.ARRAY_BUFFER, _VboID);
+		gl.vertexAttribPointer(_program.vertexPositionAttribute, 2, gl.FLOAT, gl.FALSE, 0, 0);
+		gl.uniformMatrix4fv(_program.pMatrixUniform, false, _pMatrix);
+		gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+	}
+	
+	//public
+	function App() {
+		gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
+	}
+	
+    App.prototype = {
+        askRAW: function() {
+			// this is a "call" to loadDicom() on controller.js
+			document.getElementById('rawFile').click(); 
 
-//	ImageFactory.createC3DEImagesFromWeb();
-	controller.modified = true;
-};
+			//	ImageFactory.createRAWFromWeb();
+			this.draw();
+        },
+		
+		askDicomImages: function() {
+			// this is a "call" to loadDicom() on controller.js
+			document.getElementById('dicomFiles').click(); 
+	
+			//	ImageFactory.createC3DEImagesFromWeb();
+			this.draw();
+		},
+		
+		createRaycaster: function() {
+			this.raycaster = new VolumeRaycaster(gl.viewportWidth, gl.viewportHeight, _volume);
+			this.running = true;
 
-App.prototype.askRAW = function() {
-	// this is a "call" to loadDicom() on controller.js
-	document.getElementById('rawFile').click(); 
+			tick();
+		},
+		
+		setVolume: function(volume) {
+			_volume = volume;
 
-//	ImageFactory.createRAWFromWeb();
-	controller.modified = true;
-};
+			if (!this.running)
+				this.createRaycaster();
+			else
+				this.raycaster.setVolume(_volume);
+			
 
-function App() {
-	this.pMatrix = mat4.create();
-	this.program = this.initShaders();
-	this.initBuffers();
-
-	gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
-}
+			this.draw();
+		},
+		
+		draw: function() {
+			this.raycaster.draw();
+			this.raycaster.resultTexture.bind(0);
+			drawScene();
+		}, 
+    };
+	
+	return App;
+});
 
 function tick() {
 	requestAnimFrame(tick);
 	if(controller.modified) {
-		app.raycaster.draw();
-		app.drawScene();
+		app.draw();
 		controller.modified = false;
 	}
 }
