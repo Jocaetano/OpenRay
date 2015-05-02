@@ -132,8 +132,8 @@ VolumeRaycaster.prototype.setRaycastProgramVolume = function() {
 	console.log("Número de slices : " + this.slicesLength.length);
 
 	this.raycastProgram.bind();
-	this.raycastProgram.uVolumeTexture = new Array();
-	this.raycastProgram.numberOfSlicesT = new Array();
+	this.raycastProgram.uVolumeTexture = [];
+	this.raycastProgram.numberOfSlicesT = [];
 	this.raycastProgram.uVolumeTexture[0] = this.raycastProgram.addUniform("volumeTexture" + (1));
 	gl.uniform1i(this.raycastProgram.uVolumeTexture[0], 1);
 
@@ -355,8 +355,8 @@ VolumeRaycaster.prototype.setVolume = function(volume) {
 
 	var sliceSize = Math.floor(gl.getParameter(gl.MAX_TEXTURE_SIZE)/volume._imageWidth);
 	sliceSize *= sliceSize;
-	var volumeSlices = new Array();
-	this.slicesLength = new Array();
+	var volumeSlices = [];
+	this.slicesLength = [];
 	var i = 0;
 	var a = 0;
 	while(a + sliceSize < volume._imgContainer.length) {
@@ -364,7 +364,7 @@ VolumeRaycaster.prototype.setVolume = function(volume) {
 		a = a + sliceSize;
 		this.slicesLength[i] = sliceSize;
 		i++;
-	};
+	}
 	volumeSlices[i] = volume.slice(a, volume._imgContainer.length);
 	this.slicesLength[i] = volume._imgContainer.length - a;
 
@@ -373,8 +373,8 @@ VolumeRaycaster.prototype.setVolume = function(volume) {
 	if(this.volumeTexture) 
 		this.volumeTexture.forEach(function(element) { gl.deleteTexture(element.tex); } );
 
-	this.volumeTexture = new Array();
-	for(var i = 0; i < this.numSlices; i++) {
+	this.volumeTexture = [];
+	for(i = 0; i < this.numSlices; i++) {
 		this.volumeTexture[i] = new GLTexture2D("loadFromVolume", volumeSlices[i]);
 	}
 
