@@ -1,5 +1,5 @@
 
-define(function () {
+define(['../raycaster'], function (Raycaster) {
 	//private
 	var _pMatrix = mat4.create();
 	var _program = initShaders();
@@ -57,7 +57,6 @@ define(function () {
 			document.getElementById('rawFile').click(); 
 
 			//	ImageFactory.createRAWFromWeb();
-			this.draw();
         },
 		
 		askDicomImages: function() {
@@ -65,13 +64,11 @@ define(function () {
 			document.getElementById('dicomFiles').click(); 
 	
 			//	ImageFactory.createC3DEImagesFromWeb();
-			this.draw();
 		},
-		
-		createRaycaster: function() {
-			this.raycaster = new VolumeRaycaster(gl.viewportWidth, gl.viewportHeight, _volume);
-			this.running = true;
 
+		createRaycaster: function () {
+			this.raycaster = new Raycaster(gl.viewportWidth, gl.viewportHeight, _volume);
+			this.running = true;
 			tick();
 		},
 		
@@ -82,14 +79,11 @@ define(function () {
 				this.createRaycaster();
 			else
 				this.raycaster.setVolume(_volume);
-			
-
-			this.draw();
 		},
 		
 		draw: function() {
 			this.raycaster.draw();
-			this.raycaster.resultTexture.bind(0);
+			this.raycaster.get_resultTexture().bind(0);
 			drawScene();
 		}, 
     };

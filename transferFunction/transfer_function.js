@@ -16,7 +16,7 @@ TransferFunction.prototype.addObserver = function(observer) {
 };
 
 TransferFunction.prototype.notifyObservers = function() {
-	this._observers.forEach(function(element) {element._observedUpdate();});
+	this._observers.forEach(function(element) {element.observedUpdate();});
 };
 
 TransferFunction.prototype.push = function(interval, color) {

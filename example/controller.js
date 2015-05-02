@@ -147,7 +147,7 @@ Controller.prototype.saveTransfer = function(selfController) {
 		window.requestFileSystem(window.TEMPORARY, 1024 * 1024, function(fs) {
 			fs.root.getFile('transfer.trf', { create: true }, function(fileEntry) {
 				fileEntry.createWriter(function(fileWriter) {
-					var blob = new Blob([app.raycaster.transfer.serialize()]);
+					var blob = new Blob([app.raycaster.get_transfer().serialize()]);
 
 					fileWriter.addEventListener("writeend", function() {
 						// navigate to file, will download
@@ -175,7 +175,7 @@ Controller.prototype.loadTransfer = function(selfController) {
 			if (evt.target.readyState == FileReader.DONE) {
 				var uint8Array = new Uint8Array(evt.target.result);
 				app.raycaster.loadTransferBuffer(uint8Array);
-				selfController.gradientEditor.setTransfer(app.raycaster.transfer);
+				selfController.gradientEditor.setTransfer(app.raycaster.get_transfer());
 			}
 		};
 
@@ -234,9 +234,9 @@ Controller.prototype.loadDicom = function(selfController) {
 				app.setVolume(VolumeFactory.createDicomVolume(ImageLoader.imgs));
 				ImageLoader.imgs.length = 0;;
 				if (selfController.gradientEditor)
-					selfController.updateTransferGradient(app.raycaster.transfer);
+					selfController.updateTransferGradient(app.raycaster.get_transfer());
 				else
-					selfController.createGradient(app.raycaster.transfer);
+					selfController.createGradient(app.raycaster.get_transfer());
 			}
 		};
 		
@@ -262,9 +262,9 @@ Controller.prototype.loadRAW = function(selfController) {
 		reader.onload = function(evt) {
 			app.setVolume(VolumeFactory.createVolumefromRaw(evt.target.result, bits, volumeSize, pixelSpacing));
 			if (selfController.gradientEditor)
-				selfController.updateTransferGradient(app.raycaster.transfer);
+				selfController.updateTransferGradient(app.raycaster.get_transfer());
 			else
-				selfController.createGradient(app.raycaster.transfer);
+				selfController.createGradient(app.raycaster.get_transfer());
 		};
 		reader.readAsArrayBuffer(event.target.files[0]);
 

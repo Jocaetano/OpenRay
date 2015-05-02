@@ -1,462 +1,482 @@
-/* global vec3 */
-/* global gl */
+define(function () {
+	//private	
+	function initVolumeProgram() {
+		var volumeProgram = new GpuProgram();
 
-VolumeRaycaster.prototype.initVolumeProgram = function() {
-	var volumeProgram = new GpuProgram();
+		volumeProgram._vertexShader.loadShaderFromURL('../shaders/shader.vert');
+		volumeProgram._fragShader.loadShaderFromURL('../shaders/shader.frag');
+		volumeProgram.attachShaders();
+		volumeProgram.linkProgram();
+		volumeProgram.bind();
+		volumeProgram.vertexPositionAttribute = volumeProgram.addAttribute("aVertexPosition");
+		gl.enableVertexAttribArray(volumeProgram.vertexPositionAttribute);
+		volumeProgram.vertexColorAttribute = volumeProgram.addAttribute("aVertexColor");
+		gl.enableVertexAttribArray(volumeProgram.vertexColorAttribute);
+		volumeProgram.pMatrixUniform = volumeProgram.addUniform("uPMatrix");
+		volumeProgram.mvMatrixUniform = volumeProgram.addUniform("uMVMatrix");
 
-	volumeProgram._vertexShader.loadShaderFromURL('../shaders/shader.vert');
-	volumeProgram._fragShader.loadShaderFromURL('../shaders/shader.frag');
-	volumeProgram.attachShaders();
-	volumeProgram.linkProgram();
-	volumeProgram.bind();
-	volumeProgram.vertexPositionAttribute = volumeProgram.addAttribute("aVertexPosition");
-	gl.enableVertexAttribArray(volumeProgram.vertexPositionAttribute);
-	volumeProgram.vertexColorAttribute = volumeProgram.addAttribute("aVertexColor");
-	gl.enableVertexAttribArray(volumeProgram.vertexColorAttribute);
-	volumeProgram.pMatrixUniform = volumeProgram.addUniform("uPMatrix");
-	volumeProgram.mvMatrixUniform = volumeProgram.addUniform("uMVMatrix");
+		return volumeProgram;
+	}
+	
+	function _initRaycastProgram() {
+		var raycastProgram = new GpuProgram();
 
-	return volumeProgram;
-};
+		if (_numSlices > 1)
+			raycastProgram._fragShader.addDirective("#define NUMBER_SLICES_" + _numSlices);
+		if (_usePhongShading)
+			raycastProgram._fragShader.addDirective("#define USE_PHONG_SHADING");
+		if (_useAlphaGradient)
+			raycastProgram._fragShader.addDirective("#define USE_GRADIENT_ON_ALPHA");
 
-VolumeRaycaster.prototype.initRaycastProgram = function() {
-	var raycastProgram = new GpuProgram();
+		raycastProgram._vertexShader.loadShaderFromURL('../shaders/shader.vert');
+		raycastProgram._fragShader.loadShaderFromURL('../shaders/raycast.frag');
 
-	if(this.numSlices > 1)
-		raycastProgram._fragShader.addDirective("#define NUMBER_SLICES_" + this.numSlices);
-	if(this.usePhongShading)
-		raycastProgram._fragShader.addDirective("#define USE_PHONG_SHADING");
-	if(this.useAlphaGradient)
-		raycastProgram._fragShader.addDirective("#define USE_GRADIENT_ON_ALPHA");
+		var shaderF = _createVoxelFunction();
 
-	raycastProgram._vertexShader.loadShaderFromURL('../shaders/shader.vert');
-	raycastProgram._fragShader.loadShaderFromURL('../shaders/raycast.frag');
+		raycastProgram._fragShader.addExtraCode(shaderF);
+		raycastProgram._fragShader.compile();
+		raycastProgram.attachShaders();
+		raycastProgram.linkProgram();
+		raycastProgram.bind();
+		//	Vertex
+		raycastProgram.vertexPositionAttribute = raycastProgram.addAttribute("aVertexPosition");
+		gl.enableVertexAttribArray(raycastProgram.vertexPositionAttribute);
 
-	var shaderF = this.createVoxelFunction();
+		raycastProgram.vertexColorAttribute = raycastProgram.addAttribute("aVertexColor");
+		gl.enableVertexAttribArray(raycastProgram.vertexColorAttribute);
+		raycastProgram.mvMatrixUniform = raycastProgram.addUniform("uMVMatrix");
+		raycastProgram.rotMatrixUniform = raycastProgram.addUniform("rotMatrix");
 
-	raycastProgram._fragShader.addExtraCode(shaderF);
-	raycastProgram._fragShader.compile();
-	raycastProgram.attachShaders();
-	raycastProgram.linkProgram();
-	raycastProgram.bind();
-//	Vertex
-	raycastProgram.vertexPositionAttribute = raycastProgram.addAttribute("aVertexPosition");
-	gl.enableVertexAttribArray(raycastProgram.vertexPositionAttribute);
+		raycastProgram.pMatrixUniform = raycastProgram.addUniform("uPMatrix");
+		//	Fragment
+		raycastProgram.uRaysEndTexture = raycastProgram.addUniform("raysEndTexture");
+		raycastProgram.uTransferFunctionTexture = raycastProgram.addUniform("transferFunctionTexture");
 
-	raycastProgram.vertexColorAttribute = raycastProgram.addAttribute("aVertexColor");
-	gl.enableVertexAttribArray(raycastProgram.vertexColorAttribute);
-	raycastProgram.mvMatrixUniform = raycastProgram.addUniform("uMVMatrix");
-	raycastProgram.rotMatrixUniform = raycastProgram.addUniform("rotMatrix");
+		raycastProgram.viewVector = raycastProgram.addUniform("viewVector");
+		raycastProgram.lightDirection = raycastProgram.addUniform("lightDirection");
+		raycastProgram.lightAmbientColor = raycastProgram.addUniform("lightAmbientColor");
+		raycastProgram.lightDiffuseColor = raycastProgram.addUniform("lightDiffuseColor");
+		raycastProgram.lightSpecularColor = raycastProgram.addUniform("lightSpecularColor");
+		raycastProgram.lightShininess = raycastProgram.addUniform("lightShininess");
 
-	raycastProgram.pMatrixUniform = raycastProgram.addUniform("uPMatrix");
-//	Fragment
+		raycastProgram.transferMinValue = raycastProgram.addUniform("transferMinValue");
+		raycastProgram.transferRangeValue = raycastProgram.addUniform("transferRangeValue");
 
-	raycastProgram.uRaysEndTexture = raycastProgram.addUniform("raysEndTexture");
-	raycastProgram.uTransferFunctionTexture = raycastProgram.addUniform("transferFunctionTexture");
+		raycastProgram.textureSize = raycastProgram.addUniform("textureSize");
+		raycastProgram.volumeSize = raycastProgram.addUniform("volumeSize");
+		raycastProgram.numberOfSlices = raycastProgram.addUniform("numberOfSlices");
+		raycastProgram.samplingStep = raycastProgram.addUniform("samplingStep");
+		raycastProgram.volumeSpacing = raycastProgram.addUniform("volumeSpacing");
+		raycastProgram.dicomSize = raycastProgram.addUniform("dicomSize");
 
-	raycastProgram.viewVector = raycastProgram.addUniform("viewVector");
-	raycastProgram.lightDirection = raycastProgram.addUniform("lightDirection");
-	raycastProgram.lightAmbientColor = raycastProgram.addUniform("lightAmbientColor");
-	raycastProgram.lightDiffuseColor = raycastProgram.addUniform("lightDiffuseColor");
-	raycastProgram.lightSpecularColor = raycastProgram.addUniform("lightSpecularColor");
-	raycastProgram.lightShininess = raycastProgram.addUniform("lightShininess");
+		gl.uniform2f(raycastProgram.textureSize, _width, _height);
 
-	raycastProgram.transferMinValue = raycastProgram.addUniform("transferMinValue");
-	raycastProgram.transferRangeValue = raycastProgram.addUniform("transferRangeValue");
-
-	raycastProgram.textureSize = raycastProgram.addUniform("textureSize");
-	raycastProgram.volumeSize = raycastProgram.addUniform("volumeSize");
-	raycastProgram.numberOfSlices = raycastProgram.addUniform("numberOfSlices");
-	raycastProgram.samplingStep = raycastProgram.addUniform("samplingStep");
-	raycastProgram.volumeSpacing = raycastProgram.addUniform("volumeSpacing");
-	raycastProgram.dicomSize = raycastProgram.addUniform("dicomSize");
-
-	gl.uniform2f(raycastProgram.textureSize, this.width,  this.height);
-
-	return raycastProgram;
-};
-
-VolumeRaycaster.prototype.createVoxelFunction = function() {
-	var shaderF = "\nuniform sampler2D volumeTexture1;\n";
-	shaderF += "\n";
-	shaderF += "float voxel(vec3 pos) {\n";
-	shaderF += "	float slice = pos.z * numberOfSlices;\n";
-	shaderF += "	vec3 rgb = voxelVolume(pos, " + this.slicesLength[0] + ".0, volumeTexture1, slice);\n";
-	shaderF += "	return ((rgb.g*65280.0 + rgb.r*255.0) * " + this.volume._rescaleSlope + ".0) + " + this.volume._rescale +".0;\n";
-	shaderF += "}";
-
-	if(this.numSlices > 1) {
-		shaderF = "\n";
-		for(var j = 0; j < this.numSlices; j++) {
-			shaderF += "uniform sampler2D volumeTexture" + (j+1) + " ;\n";
-		}
+		return raycastProgram;
+	}
+	
+	function _createVoxelFunction() {
+		var shaderF = "\nuniform sampler2D volumeTexture1;\n";
 		shaderF += "\n";
 		shaderF += "float voxel(vec3 pos) {\n";
-		shaderF += "	vec3 rgb;\n";
 		shaderF += "	float slice = pos.z * numberOfSlices;\n";
-		shaderF += "	if(slice < "+ (this.slicesLength[0] - 1) + ".0) {\n";
-		shaderF += "		rgb = voxelVolume(pos, " + this.slicesLength[0] + ".0 , volumeTexture1, slice);\n";
-		shaderF += "	}\n";
-		var temp = this.slicesLength[0];
-		var i = 1;
-		for(; i < this.numSlices - 1; i++) {
-			shaderF += "	else if(slice < " + (temp) + ".0) {\n";
-			shaderF += "		rgb = voxelVolumeIntersection(pos, " + Math.ceil(Math.sqrt(this.slicesLength[i-1])) + ".0, " + Math.ceil(Math.sqrt(this.slicesLength[i])) + ".0, volumeTexture" + i + ", volumeTexture" + (i+1) + ", slice - " + (temp - this.slicesLength[i - 1]) + ".0);\n";
-			shaderF += "	}\n";
-				shaderF += "	else if(slice < " + (temp + this.slicesLength[i] - 1) + ".0) {\n";
-			shaderF += "		rgb = voxelVolume(pos, " + this.slicesLength[i] + ".0, volumeTexture" + (i+1) + ", slice - " + temp + ".0);\n";
-			shaderF += "	}\n";
-			temp += this.slicesLength[i];
-		}
-		shaderF += "	else if(slice < " + (temp) + ".0) {\n";
-		shaderF += "		rgb = voxelVolumeIntersection(pos, " + Math.ceil(Math.sqrt(this.slicesLength[i-1])) + ".0, " + Math.ceil(Math.sqrt(this.slicesLength[i])) + ".0, volumeTexture" + i + ", volumeTexture" + (i+1) + ", slice - " + (temp - this.slicesLength[i - 1]) + ".0);\n";
-		shaderF += "	}\n";
-		shaderF += "	else if(slice < " + (temp + this.slicesLength[i]) + ".0) {\n";
-		shaderF += "		rgb = voxelVolume(pos, " + this.slicesLength[i] + ".0, volumeTexture" + (i+1) + ", slice - " + (temp) + ".0);\n";
-		shaderF += "	}\n";
-
-		shaderF += "	return ((rgb.g*65280.0 + rgb.r*255.0) * " + this.volume._rescaleSlope + ".0) + " + this.volume._rescale +".0;\n";
+		shaderF += "	vec3 rgb = voxelVolume(pos, " + _slicesLength[0] + ".0, volumeTexture1, slice);\n";
+		shaderF += "	return ((rgb.g*65280.0 + rgb.r*255.0) * " + _volume._rescaleSlope + ".0) + " + _volume._rescale + ".0;\n";
 		shaderF += "}";
+
+		if (_numSlices > 1) {
+			shaderF = "\n";
+			for (var j = 0; j < _numSlices; j++) {
+				shaderF += "uniform sampler2D volumeTexture" + (j + 1) + " ;\n";
+			}
+			shaderF += "\n";
+			shaderF += "float voxel(vec3 pos) {\n";
+			shaderF += "	vec3 rgb;\n";
+			shaderF += "	float slice = pos.z * numberOfSlices;\n";
+			shaderF += "	if(slice < " + (_slicesLength[0] - 1) + ".0) {\n";
+			shaderF += "		rgb = voxelVolume(pos, " + _slicesLength[0] + ".0 , volumeTexture1, slice);\n";
+			shaderF += "	}\n";
+			var temp = _slicesLength[0];
+			var i = 1;
+			for (; i < _numSlices - 1; i++) {
+				shaderF += "	else if(slice < " + (temp) + ".0) {\n";
+				shaderF += "		rgb = voxelVolumeIntersection(pos, " + Math.ceil(Math.sqrt(_slicesLength[i - 1])) + ".0, " + Math.ceil(Math.sqrt(_slicesLength[i])) + ".0, volumeTexture" + i + ", volumeTexture" + (i + 1) + ", slice - " + (temp - _slicesLength[i - 1]) + ".0);\n";
+				shaderF += "	}\n";
+				shaderF += "	else if(slice < " + (temp + _slicesLength[i] - 1) + ".0) {\n";
+				shaderF += "		rgb = voxelVolume(pos, " + _slicesLength[i] + ".0, volumeTexture" + (i + 1) + ", slice - " + temp + ".0);\n";
+				shaderF += "	}\n";
+				temp += _slicesLength[i];
+			}
+			shaderF += "	else if(slice < " + (temp) + ".0) {\n";
+			shaderF += "		rgb = voxelVolumeIntersection(pos, " + Math.ceil(Math.sqrt(_slicesLength[i - 1])) + ".0, " + Math.ceil(Math.sqrt(_slicesLength[i])) + ".0, volumeTexture" + i + ", volumeTexture" + (i + 1) + ", slice - " + (temp - _slicesLength[i - 1]) + ".0);\n";
+			shaderF += "	}\n";
+			shaderF += "	else if(slice < " + (temp + _slicesLength[i]) + ".0) {\n";
+			shaderF += "		rgb = voxelVolume(pos, " + _slicesLength[i] + ".0, volumeTexture" + (i + 1) + ", slice - " + (temp) + ".0);\n";
+			shaderF += "	}\n";
+
+			shaderF += "	return ((rgb.g*65280.0 + rgb.r*255.0) * " + _volume._rescaleSlope + ".0) + " + _volume._rescale + ".0;\n";
+			shaderF += "}";
+		}
+		return shaderF;
 	}
-	return shaderF;
-};
-
-VolumeRaycaster.prototype.setRaycastProgramVolume = function() {
-	var box = this.volume.boundingBox();
-	var spacing = [this.volume.getPixelSpacing().x, this.volume.getPixelSpacing().y, this.volume.getPixelSpacing().z];
-	var smallerSpacing = Math.min(spacing[0], Math.min(spacing[1], spacing[2]));
-	var samplingStep = 0.5 * smallerSpacing;
-	console.log("Sampling steps: " + spacing);
-	console.log("Sampling step: " + samplingStep);
-	console.log("Box: " + box.width() + "  " + box.depth() + "  " + box.height());	
-	console.log("Número de slices : " + this.slicesLength.length);
-
-	this.raycastProgram.bind();
-	this.raycastProgram.uVolumeTexture = [];
-	this.raycastProgram.numberOfSlicesT = [];
-	this.raycastProgram.uVolumeTexture[0] = this.raycastProgram.addUniform("volumeTexture" + (1));
-	gl.uniform1i(this.raycastProgram.uVolumeTexture[0], 1);
-
-	var i = 1;
-	for(; i < this.numSlices; i++) {
-		this.raycastProgram.uVolumeTexture[i] = this.raycastProgram.addUniform("volumeTexture" + (i+1));
-		gl.uniform1i(this.raycastProgram.uVolumeTexture[i], i+1);
-	}
-
-	gl.uniform1i(this.raycastProgram.uRaysEndTexture, ++i);
-	gl.uniform1i(this.raycastProgram.uTransferFunctionTexture, ++i);
-	gl.uniform3f(this.raycastProgram.volumeSize, box.width(), box.depth(), box.height());
-	gl.uniform1f(this.raycastProgram.numberOfSlices, this.volume._imgContainer.length);
-	gl.uniform1f(this.raycastProgram.samplingStep, samplingStep);
-	gl.uniform1f(this.raycastProgram.volumeSpacing, smallerSpacing);
-	gl.uniform1f(this.raycastProgram.dicomSize, this.volume._imageWidth);
-};
-
-VolumeRaycaster.prototype.createBuffers = function() {
-	this.cubeVertexPositionBuffer = gl.createBuffer();
-	this.cubeVertexColorBuffer = gl.createBuffer();
-	this.cubeVertexIndexBuffer = gl.createBuffer();
-};
-
-VolumeRaycaster.prototype.initVolumeBuffer = function() {
-	this.mvMatrix = mat4.create();
-	this.pMatrix = mat4.create();
-
-	var box = this.volume.boundingBox();
-	box.translate(box.center());
-	var vertices = [
-	            (box.corner(7)[0]), (box.corner(7)[1]), (box.corner(7)[2]),
-	            (box.corner(6)[0]), (box.corner(6)[1]), (box.corner(6)[2]),
-	            (box.corner(5)[0]), (box.corner(5)[1]), (box.corner(5)[2]),
-	            (box.corner(4)[0]), (box.corner(4)[1]), (box.corner(4)[2]),
-	            (box.corner(3)[0]), (box.corner(3)[1]), (box.corner(3)[2]),
-	            (box.corner(2)[0]), (box.corner(2)[1]), (box.corner(2)[2]),
-	            (box.corner(1)[0]), (box.corner(1)[1]), (box.corner(1)[2]),
-	            (box.corner(0)[0]), (box.corner(0)[1]), (box.corner(0)[2]),
-	            ];
-
-	gl.bindBuffer(gl.ARRAY_BUFFER, this.cubeVertexPositionBuffer);
-	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
-
-	var colors = [
-	          0.0, 0.0, 0.0, 1.0,
-	          1.0, 0.0, 0.0, 1.0,
-	          0.0, 1.0, 0.0, 1.0,
-	          1.0, 1.0, 0.0, 1.0,
-	          0.0, 0.0, 1.0, 1.0,
-	          1.0, 0.0, 1.0, 1.0,
-	          0.0, 1.0, 1.0, 1.0,
-	          1.0, 1.0, 1.0, 1.0
-	          ];
-
-	gl.bindBuffer(gl.ARRAY_BUFFER, this.cubeVertexColorBuffer);
-	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
-
-	var cubeVertexIndices = [
-	                     2, 0, 4,   2, 4, 6,	// Left face
-	                     1, 0, 2,   1, 2, 3,	// Bottom face
-	                     0, 5, 4,   0, 1, 5,	// Front face
-	                     2, 6, 7,   2, 7, 3,	// Back face
-	                     1, 7, 5,   1, 3, 7,	// Right face
-	                     4, 7, 6,   4, 5, 7,	// Top face
-	                     ];
-
-	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.cubeVertexIndexBuffer);
-	gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(cubeVertexIndices), gl.STATIC_DRAW);
-};
-
-VolumeRaycaster.prototype.castRays = function() {
-	this.resultFBO.bind();
-	this.resultFBO.attachColor(this.resultFBO.tex, 0);
-
-	gl.clear(gl.COLOR_BUFFER_BIT);
-	gl.cullFace(gl.FRONT);
-
-	this.resultFBO.tex.bind(0);
-	var i = 0;
-	for(; i < this.numSlices; i++) {
-		this.volumeTexture[i].bind(i+1);	
-	}		
-	this.endFBO.tex.bind(++i);
-	this.transferFunctionTexture.bind(++i);
-
-	var cam = vec3.fromValues(0.0, 0.0, 1.0);
-	vec3.add(cam, cam, vec3.fromValues(this.translateX, this.translateY, -800.0));
-	vec3.transformMat4(cam, cam, this.objectRotationMatrix);
-	vec3.normalize(cam, cam);
-
-	this.raycastProgram.bind();
-	gl.uniform3f(this.raycastProgram.viewVector, cam[0], cam[1], cam[2]);
-	gl.uniform3f(this.raycastProgram.lightDirection, this.light._position[0], this.light._position[1], this.light._position[2]);
-	gl.uniform3f(this.raycastProgram.lightAmbientColor, this.light._ambient.r, this.light._ambient.g, this.light._ambient.b);
-	gl.uniform3f(this.raycastProgram.lightDiffuseColor, this.light._diffuse.r, this.light._diffuse.g, this.light._diffuse.b);
-	gl.uniform3f(this.raycastProgram.lightSpecularColor, this.light._specular.r, this.light._specular.g, this.light._specular.b);
-	gl.uniform1f(this.raycastProgram.lightShininess, 32.0);
-
-	gl.uniformMatrix4fv(this.raycastProgram.rotMatrixUniform, false, this.objectRotationMatrix);
-
-	this.drawVolumeBuffer(this.raycastProgram);
-
-	this.resultFBO.unbind();
-};
-
-VolumeRaycaster.prototype.drawVolumeBuffer = function(program) {
-	gl.viewport(0, 0, this.width, this.height);
-	mat4.frustum(this.pMatrix, -10*this.zoom, 10*this.zoom, -10*this.zoom, 10*this.zoom, 200, 2500.0);
-
-	program.bind();
-	gl.bindBuffer(gl.ARRAY_BUFFER, this.cubeVertexColorBuffer);
-	gl.vertexAttribPointer(program.vertexColorAttribute, 4, gl.FLOAT, false, 0, 0);
-	gl.bindBuffer(gl.ARRAY_BUFFER, this.cubeVertexPositionBuffer);
-	gl.vertexAttribPointer(program.vertexPositionAttribute, 3, gl.FLOAT, false, 0, 0);
-	gl.uniformMatrix4fv(program.pMatrixUniform, false, this.pMatrix);
-	gl.uniformMatrix4fv(program.mvMatrixUniform, false, this.mvMatrix);
-	gl.drawElements(gl.TRIANGLES, 36, gl.UNSIGNED_SHORT, 0);
-
-	gl.viewport(0, 0, 1024, 1024);
-};
-
-VolumeRaycaster.prototype.calculateRayEnd = function() {
-	this.endFBO.bind();
-	this.endFBO.attachColor(this.endFBO.tex, 0);
-	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-	gl.enable(gl.CULL_FACE);
-	gl.cullFace(gl.BACK);
-
-	this.drawVolumeBuffer(this.volumeProgram);
-
-	this.endFBO.unbind();
-};
-
-VolumeRaycaster.prototype.draw = function() {
-	gl.clearColor(0.0, 0.0, 0.0, 0.0);
-
-	mat4.identity(this.mvMatrix);
-	mat4.translate(this.mvMatrix, this.mvMatrix, [this.translateX, this.translateY, -800.0]);
-	mat4.multiply(this.mvMatrix, this.mvMatrix, this.objectRotationMatrix);
-
-	this.calculateRayEnd();
-	this.castRays();
-};
-
-VolumeRaycaster.prototype.changeResultTexture = function () {
-	if (this.resultTexture == this.resultFBO.tex) {
-		this.resultTexture = this.endFBO.tex;
-		return;
-	}
-	this.resultTexture = this.resultFBO.tex;
-};
-
-VolumeRaycaster.prototype.changeRes = function(width, height) {
-	this.width = width; this.height = height; 
-
-	this.resultFBO.tex.changeSize(width, height);
-
-	this.endFBO.changeRenderBufferSize(this.width, this.width, gl.DEPTH_ATTACHMENT);
-	this.endFBO.tex.changeSize(width, height);
-
-	this.raycastProgram.bind();
-	gl.uniform2f(this.raycastProgram.textureSize, this.width,  this.height);
-};
-
-function VolumeRaycaster(width, height, volume) {
-	this.width = width; this.height = height; 
-	this.resultFBO = new FrameBufferObject();
-	this.resultFBO.tex = new GLTexture2D("createTexture", this.width, this.height, gl.RGBA);
-
-	this.resultTexture = this.resultFBO.tex;
-
-	this.endFBO = new FrameBufferObject();
-	this.endFBO.createDepthRenderBuffer(this.width, this.width, gl.DEPTH_ATTACHMENT);
-	this.endFBO.tex = new GLTexture2D("createTexture", this.width, this.height, gl.RGBA);
-
-	this.volumeProgram = this.initVolumeProgram();
-
-	this.usePhongShading = true;
-	this.useAlphaGradient = false;
-
-	this.createBuffers();
-	this.setVolume(volume);
 	
-	this.translateX = 0.0;
-	this.translateY = 0.0;
-	this.zoom = 10;
-	this.objectRotationMatrix = mat4.create();
+	function _setRaycastProgramVolume() {
+		var box = _volume.boundingBox();
+		var spacing = [_volume.getPixelSpacing().x, _volume.getPixelSpacing().y, _volume.getPixelSpacing().z];
+		var smallerSpacing = Math.min(spacing[0], Math.min(spacing[1], spacing[2]));
+		var samplingStep = 0.5 * smallerSpacing;
+		console.log("Sampling steps: " + spacing);
+		console.log("Sampling step: " + samplingStep);
+		console.log("Box: " + box.width() + "  " + box.depth() + "  " + box.height());
+		console.log("Número de slices : " + _slicesLength.length);
 
-	this.light = new LightSource([0.0, -1.0, 0.0],  true, new Color(0.0, 0.0, 0.0), new Color(1.0, 1.0, 1.0), new Color(1.0, 1.0, 1.0));
+		_raycastProgram.bind();
+		_raycastProgram.uVolumeTexture = [];
+		_raycastProgram.numberOfSlicesT = [];
+		_raycastProgram.uVolumeTexture[0] = _raycastProgram.addUniform("volumeTexture" + (1));
+		gl.uniform1i(_raycastProgram.uVolumeTexture[0], 1);
 
-	gl.enable(gl.DEPTH_TEST);
-	gl.enable(gl.BLEND);
-}
+		var i = 1;
+		for (; i < _numSlices; i++) {
+			_raycastProgram.uVolumeTexture[i] = _raycastProgram.addUniform("volumeTexture" + (i + 1));
+			gl.uniform1i(_raycastProgram.uVolumeTexture[i], i + 1);
+		}
 
-VolumeRaycaster.prototype.restartProgram = function(usePhongShading, useAlphaGradient) {
-	this.usePhongShading = usePhongShading;
-	this.useAlphaGradient = useAlphaGradient;
-
-	this.setVolume(this.volume);
-};
-
-VolumeRaycaster.prototype.changeLightDirection = function(index, value) {
-	this.light._position[index] = value;
-};
-
-VolumeRaycaster.prototype.moveCamera = function(translateX, translateY, zoom) {
-	this.translateX = translateX;
-	this.translateY = translateY;
-	this.zoom = zoom;
-};
-
-VolumeRaycaster.prototype.rotateCamera = function(objectRotationMatrix) {
-	this.objectRotationMatrix = objectRotationMatrix;
-};
-
-VolumeRaycaster.prototype.setVolume = function(volume) {
-	this.volume = volume;
-
-	var sliceSize = Math.floor(gl.getParameter(gl.MAX_TEXTURE_SIZE)/volume._imageWidth);
-	sliceSize *= sliceSize;
-	var volumeSlices = [];
-	this.slicesLength = [];
-	var i = 0;
-	var a = 0;
-	while(a + sliceSize < volume._imgContainer.length) {
-		volumeSlices[i] = volume.slice(a, a + sliceSize);
-		a = a + sliceSize;
-		this.slicesLength[i] = sliceSize;
-		i++;
+		gl.uniform1i(_raycastProgram.uRaysEndTexture, ++i);
+		gl.uniform1i(_raycastProgram.uTransferFunctionTexture, ++i);
+		gl.uniform3f(_raycastProgram.volumeSize, box.width(), box.depth(), box.height());
+		gl.uniform1f(_raycastProgram.numberOfSlices, _volume._imgContainer.length);
+		gl.uniform1f(_raycastProgram.samplingStep, samplingStep);
+		gl.uniform1f(_raycastProgram.volumeSpacing, smallerSpacing);
+		gl.uniform1f(_raycastProgram.dicomSize, _volume._imageWidth);
 	}
-	volumeSlices[i] = volume.slice(a, volume._imgContainer.length);
-	this.slicesLength[i] = volume._imgContainer.length - a;
+	
+	function initVolumeBuffer() {
 
-	this.numSlices = volumeSlices.length;
+		var box = _volume.boundingBox();
+		box.translate(box.center());
+		var vertices = [
+			(box.corner(7)[0]), (box.corner(7)[1]), (box.corner(7)[2]),
+			(box.corner(6)[0]), (box.corner(6)[1]), (box.corner(6)[2]),
+			(box.corner(5)[0]), (box.corner(5)[1]), (box.corner(5)[2]),
+			(box.corner(4)[0]), (box.corner(4)[1]), (box.corner(4)[2]),
+			(box.corner(3)[0]), (box.corner(3)[1]), (box.corner(3)[2]),
+			(box.corner(2)[0]), (box.corner(2)[1]), (box.corner(2)[2]),
+			(box.corner(1)[0]), (box.corner(1)[1]), (box.corner(1)[2]),
+			(box.corner(0)[0]), (box.corner(0)[1]), (box.corner(0)[2]),
+		];
 
-	if(this.volumeTexture) 
-		this.volumeTexture.forEach(function(element) { gl.deleteTexture(element.tex); } );
+		gl.bindBuffer(gl.ARRAY_BUFFER, _cubeVertexPositionBuffer);
+		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
 
-	this.volumeTexture = [];
-	for(i = 0; i < this.numSlices; i++) {
-		this.volumeTexture[i] = new GLTexture2D("loadFromVolume", volumeSlices[i]);
+		var colors = [
+			0.0, 0.0, 0.0, 1.0,
+			1.0, 0.0, 0.0, 1.0,
+			0.0, 1.0, 0.0, 1.0,
+			1.0, 1.0, 0.0, 1.0,
+			0.0, 0.0, 1.0, 1.0,
+			1.0, 0.0, 1.0, 1.0,
+			0.0, 1.0, 1.0, 1.0,
+			1.0, 1.0, 1.0, 1.0
+		];
+
+		gl.bindBuffer(gl.ARRAY_BUFFER, _cubeVertexColorBuffer);
+		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
+
+		var cubeVertexIndices = [
+			2, 0, 4, 2, 4, 6,	// Left face
+			1, 0, 2, 1, 2, 3,	// Bottom face
+			0, 5, 4, 0, 1, 5,	// Front face
+			2, 6, 7, 2, 7, 3,	// Back face
+			1, 7, 5, 1, 3, 7,	// Right face
+			4, 7, 6, 4, 5, 7,	// Top face
+		];
+
+		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, _cubeVertexIndexBuffer);
+		gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(cubeVertexIndices), gl.STATIC_DRAW);
 	}
+	
+	function _castRays() {
+		_resultFBO.bind();
+		_resultFBO.attachColor(_resultFBO.tex, 0);
 
-	this.transferFunctionSize = this.volume._maxDensity - this.volume._minDensity + 1;
+		gl.clear(gl.COLOR_BUFFER_BIT);
+		gl.cullFace(gl.FRONT);
 
-	if(this.transferFunctionTexture)
-		this.transferFunctionTexture.changeSize(this.transferFunctionSize, 1);
-	else
-		this.transferFunctionTexture = new GLTexture2D("createTexture", this.transferFunctionSize, 1, gl.RGBA);
+		_resultFBO.tex.bind(0);
+		var i = 0;
+		for (; i < _numSlices; i++) {
+			_volumeTexture[i].bind(i + 1);
+		}
+		_endFBO.tex.bind(++i);
+		_transferFunctionTexture.bind(++i);
 
-	this.initVolumeBuffer();
+		var cam = vec3.fromValues(0.0, 0.0, 1.0);
+		vec3.add(cam, cam, vec3.fromValues(_translateX, _translateY, -800.0));
+		vec3.transformMat4(cam, cam, _objectRotationMatrix);
+		vec3.normalize(cam, cam);
 
-	if(this.raycastProgram)
-		gl.deleteProgram(this.raycastProgram.getProgram());
+		_raycastProgram.bind();
+		gl.uniform3f(_raycastProgram.viewVector, cam[0], cam[1], cam[2]);
+		gl.uniform3f(_raycastProgram.lightDirection, _light._position[0], _light._position[1], _light._position[2]);
+		gl.uniform3f(_raycastProgram.lightAmbientColor, _light._ambient.r, _light._ambient.g, _light._ambient.b);
+		gl.uniform3f(_raycastProgram.lightDiffuseColor, _light._diffuse.r, _light._diffuse.g, _light._diffuse.b);
+		gl.uniform3f(_raycastProgram.lightSpecularColor, _light._specular.r, _light._specular.g, _light._specular.b);
+		gl.uniform1f(_raycastProgram.lightShininess, 32.0);
 
-	this.raycastProgram = this.initRaycastProgram();
-	this.setRaycastProgramVolume();
+		gl.uniformMatrix4fv(_raycastProgram.rotMatrixUniform, false, _objectRotationMatrix);
 
-	if(this.transfer)
-		this.transfer.setRange(this.volume._minDensity, this.volume._maxDensity);
-	else
-		this.setDefaultTransfer();
+		_drawVolumeBuffer(_raycastProgram);
 
-	this.updateTransferFunctionTexture();
-};
-
-VolumeRaycaster.prototype.loadTransferBuffer = function(transferBuffer) {
-	var dataView = new DataView(transferBuffer.buffer);
-	var transfer = new TransferFunction(this.volume._minDensity, this.volume._maxDensity);
-
-	var nStops = transferBuffer[0];
-
-	for(var i = 0; i < nStops; i++){
-		var position = (dataView.getFloat32(8*i + 1) - transfer._min) / (transfer._max - transfer._min);
-		var color = new Color(transferBuffer[8*i + 5], transferBuffer[8*i + 6], transferBuffer[8*i + 7], transferBuffer[8*i + 8]);
-		transfer.push(position, color);
-	}
-
-	transfer.addObserver(this);
-	this.transfer = transfer;
-
-	this.updateTransferFunctionTexture();
-};
-
-VolumeRaycaster.prototype.setTransfer = function(transfer) {
-	transfer.setRange(this.volume._minDensity, this.volume._maxDensity);
-	transfer.addObserver(this);
-	this.transfer = transfer;
-
-	this.updateTransferFunctionTexture();
-};
-
-VolumeRaycaster.prototype.setDefaultTransfer = function() {
-	var transfer = new TransferFunction(this.volume._minDensity, this.volume._maxDensity);
-
-	transfer.push(0, new Color(0, 0, 0, 0));
-	transfer.push(0.02, new Color(64, 0, 0, 36));
-	transfer.push(0.06, new Color(255, 0, 0, 107));
-	transfer.push(0.08, new Color(128, 128, 0, 143));
-	transfer.push(0.1, new Color(255, 255, 255, 179));
-	transfer.push(1, new Color(255, 255, 255, 255));
-
-	transfer.addObserver(this);
-	this.transfer = transfer;
-};
-
-VolumeRaycaster.prototype.updateTransferFunctionTexture = function() {
-	var dataBuffer = new ArrayBuffer(this.transferFunctionSize*4);
-	var data = new Uint8Array(dataBuffer);
-	var data32 = new Uint32Array(dataBuffer);
-	for(var i = 0; i < this.transferFunctionSize; i++){
-		var position = i/(this.transferFunctionSize - 1);
-		data32[i] = this.transfer.getColorAt(position);
+		_resultFBO.unbind();
 	}
 
-	this.transferFunctionTexture.bind();
-	this.transferFunctionTexture.updatePixels(data, gl.RGBA);
-	this.raycastProgram.bind();
-	gl.uniform1f(this.raycastProgram.transferMinValue, this.transfer.getRangeMin());
-	gl.uniform1f(this.raycastProgram.transferRangeValue, this.transfer.getRangeMax() - this.transfer.getRangeMin());
-};
+	function _drawVolumeBuffer(program) {
+		gl.viewport(0, 0, _width, _height);
+		mat4.frustum(_pMatrix, -10 * _zoom, 10 * _zoom, -10 * _zoom, 10 * _zoom, 200, 2500.0);
 
-VolumeRaycaster.prototype._observedUpdate = function() {
-	this.updateTransferFunctionTexture();
-};
+		program.bind();
+		gl.bindBuffer(gl.ARRAY_BUFFER, _cubeVertexColorBuffer);
+		gl.vertexAttribPointer(program.vertexColorAttribute, 4, gl.FLOAT, false, 0, 0);
+		gl.bindBuffer(gl.ARRAY_BUFFER, _cubeVertexPositionBuffer);
+		gl.vertexAttribPointer(program.vertexPositionAttribute, 3, gl.FLOAT, false, 0, 0);
+		gl.uniformMatrix4fv(program.pMatrixUniform, false, _pMatrix);
+		gl.uniformMatrix4fv(program.mvMatrixUniform, false, _mvMatrix);
+		gl.drawElements(gl.TRIANGLES, 36, gl.UNSIGNED_SHORT, 0);
+
+		gl.viewport(0, 0, 1024, 1024);
+	}
+	
+	function _calculateRayEnd() {
+		_endFBO.bind();
+		_endFBO.attachColor(_endFBO.tex, 0);
+		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+		gl.enable(gl.CULL_FACE);
+		gl.cullFace(gl.BACK);
+
+		_drawVolumeBuffer(_volumeProgram);
+
+		_endFBO.unbind();
+	}
+	
+	function _setDefaultTransferColors() {
+		_transfer.push(0, new Color(0, 0, 0, 0));
+		_transfer.push(0.02, new Color(64, 0, 0, 36));
+		_transfer.push(0.06, new Color(255, 0, 0, 107));
+		_transfer.push(0.08, new Color(128, 128, 0, 143));
+		_transfer.push(0.1, new Color(255, 255, 255, 179));
+		_transfer.push(1, new Color(255, 255, 255, 255));
+	}
+
+	function _updateTransferFunctionTexture() {
+		var dataBuffer = new ArrayBuffer(_transferFunctionSize * 4);
+		var data = new Uint8Array(dataBuffer);
+		var data32 = new Uint32Array(dataBuffer);
+		for (var i = 0; i < _transferFunctionSize; i++) {
+			var position = i / (_transferFunctionSize - 1);
+			data32[i] = _transfer.getColorAt(position);
+		}
+
+		_transferFunctionTexture.bind();
+		_transferFunctionTexture.updatePixels(data, gl.RGBA);
+		_raycastProgram.bind();
+		gl.uniform1f(_raycastProgram.transferMinValue, _transfer.getRangeMin());
+		gl.uniform1f(_raycastProgram.transferRangeValue, _transfer.getRangeMax() - _transfer.getRangeMin());
+	}
+	
+	var _width = 0, _height = 0;
+	var _volume;
+	var _slicesLength = [];
+	var _numSlices = 0;
+	var _volumeTexture = [];
+	
+	var _resultFBO = new FrameBufferObject();
+	var _resultTexture;
+	
+	var _endFBO = new FrameBufferObject();
+	
+	var _raycastProgram;
+	var _volumeProgram = initVolumeProgram();
+	
+	var _usePhongShading = true;
+	var _useAlphaGradient = false;
+	
+	var _cubeVertexPositionBuffer = gl.createBuffer();
+	var _cubeVertexColorBuffer = gl.createBuffer();
+	var _cubeVertexIndexBuffer = gl.createBuffer();
+	
+	var _translateX = 0.0;
+	var _translateY = 0.0;
+	var _zoom = 10;
+	var _objectRotationMatrix = mat4.create();
+
+	var _light = new LightSource([0.0, -1.0, 0.0], true, new Color(0.0, 0.0, 0.0), new Color(1.0, 1.0, 1.0), new Color(1.0, 1.0, 1.0));
+
+	var _transfer;
+	var _transferFunctionSize = 0;
+	var _transferFunctionTexture;
+
+	var _mvMatrix = mat4.create();
+	var _pMatrix = mat4.create();
+
+	function VolumeRaycaster(width, height, volume) {
+		_width = width; _height = height;
+
+		_resultFBO.tex = new GLTexture2D("createTexture", _width, _height, gl.RGBA);
+		_resultTexture = _resultFBO.tex;
+
+		_endFBO.createDepthRenderBuffer(_width, _width, gl.DEPTH_ATTACHMENT);
+		_endFBO.tex = new GLTexture2D("createTexture", _width, _height, gl.RGBA);
+
+		this.setVolume(volume);
+
+		gl.enable(gl.DEPTH_TEST);
+		gl.enable(gl.BLEND);
+	}
+	
+	VolumeRaycaster.prototype = {
+
+		setVolume: function (volume) {
+			_volume = volume;
+
+			var sliceSize = Math.floor(gl.getParameter(gl.MAX_TEXTURE_SIZE) / volume._imageWidth);
+			sliceSize *= sliceSize;
+			var volumeSlices = [];
+			
+			var i = 0;
+			var a = 0;
+			while (a + sliceSize < volume._imgContainer.length) {
+				volumeSlices[i] = volume.slice(a, a + sliceSize);
+				a = a + sliceSize;
+				_slicesLength[i] = sliceSize;
+				i++;
+			}
+			volumeSlices[i] = volume.slice(a, volume._imgContainer.length);
+			_slicesLength[i] = volume._imgContainer.length - a;
+
+			_numSlices = volumeSlices.length;
+
+			_volumeTexture.forEach(function (element) { gl.deleteTexture(element.tex); });
+
+			for (i = 0; i < _numSlices; i++) {
+				_volumeTexture[i] = new GLTexture2D("loadFromVolume", volumeSlices[i]);
+			}
+
+			_transferFunctionSize = _volume._maxDensity - _volume._minDensity + 1;
+
+			if (_transferFunctionTexture)
+				_transferFunctionTexture.changeSize(_transferFunctionSize, 1);
+			else
+				_transferFunctionTexture = new GLTexture2D("createTexture", _transferFunctionSize, 1, gl.RGBA);
+
+			initVolumeBuffer();
+
+			if (_raycastProgram)
+				gl.deleteProgram(_raycastProgram.getProgram());
+
+			_raycastProgram = _initRaycastProgram();
+			_setRaycastProgramVolume();
+
+			if (_transfer)
+				_transfer.setRange(_volume._minDensity, _volume._maxDensity);
+			else {
+				_transfer = new TransferFunction(_volume._minDensity, _volume._maxDensity);
+				_transfer.addObserver(this);
+				_setDefaultTransferColors();
+			}
+
+			_updateTransferFunctionTexture();
+		},
+		
+		draw: function () {
+			gl.clearColor(0.0, 0.0, 0.0, 0.0);
+
+			mat4.identity(_mvMatrix);
+			mat4.translate(_mvMatrix, _mvMatrix, [_translateX, _translateY, -800.0]);
+			mat4.multiply(_mvMatrix, _mvMatrix, _objectRotationMatrix);
+
+			_calculateRayEnd();
+			_castRays();
+		},
+		
+		changeRes: function (width, height) {
+			_width = width; _height = height;
+
+			_resultFBO.tex.changeSize(width, height);
+
+			_endFBO.changeRenderBufferSize(_width, _width, gl.DEPTH_ATTACHMENT);
+			_endFBO.tex.changeSize(width, height);
+
+			_raycastProgram.bind();
+			gl.uniform2f(_raycastProgram.textureSize, _width, _height);
+		},
+
+		changeResultTexture: function () {
+			if (_resultTexture == _resultFBO.tex) {
+				_resultTexture = _endFBO.tex;
+				return;
+			}
+			_resultTexture = _resultFBO.tex;
+		},
+		
+		loadTransferBuffer: function (transferBuffer) {
+			var dataView = new DataView(transferBuffer.buffer);
+			var transfer = new TransferFunction(_volume._minDensity, _volume._maxDensity);
+
+			var nStops = transferBuffer[0];
+
+			for (var i = 0; i < nStops; i++) {
+				var position = (dataView.getFloat32(8 * i + 1) - transfer._min) / (transfer._max - transfer._min);
+				var color = new Color(transferBuffer[8 * i + 5], transferBuffer[8 * i + 6], transferBuffer[8 * i + 7], transferBuffer[8 * i + 8]);
+				transfer.push(position, color);
+			}
+
+			transfer.addObserver(this);
+			_transfer = transfer;
+
+			_updateTransferFunctionTexture();
+		},
+		
+		setTransfer: function (transfer) {
+			transfer.setRange(_volume._minDensity, _volume._maxDensity);
+			transfer.addObserver(this);
+			_transfer = transfer;
+
+			_updateTransferFunctionTexture();
+		},
+		
+		restartProgram: function (usePhongShading, useAlphaGradient) {
+			_usePhongShading = usePhongShading;
+			_useAlphaGradient = useAlphaGradient;
+
+			this.setVolume(_volume);
+		},
+
+		changeLightDirection: function (index, value) {
+			_light._position[index] = value;
+		},
+
+		moveCamera: function (translateX, translateY, zoom) {
+			_translateX = translateX;
+			_translateY = translateY;
+			_zoom = zoom;
+		},
+
+		rotateCamera: function (objectRotationMatrix) {
+			_objectRotationMatrix = objectRotationMatrix;
+		},
+
+		observedUpdate: function () {
+			_updateTransferFunctionTexture();
+		},
+		
+		get_resultTexture: function () {
+			return _resultTexture;
+		},
+		
+		get_transfer: function () {
+			return _transfer;
+		},
+	};
+	
+	return VolumeRaycaster;
+});
