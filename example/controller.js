@@ -226,7 +226,26 @@ Controller.prototype.loadDicom = function(selfController) {
 			return;
 		}
 
-		ImageFactory.createC3DEImages(event.target.files);
+		ImageLoader.totalSize = event.target.files.length;
+
+		var onloadF = function (evt) {
+			ImageLoader.pushImage(ImageLoader.loadImage(evt.target.result));
+			if (ImageLoader.totalSize <= ImageLoader.imgs.length) {
+				app.setVolume(VolumeFactory.createDicomVolume(ImageLoader.imgs));
+				ImageLoader.imgs.length = 0;;
+				if (selfController.gradientEditor)
+					selfController.updateTransferGradient(app.raycaster.transfer);
+				else
+					selfController.createGradient(app.raycaster.transfer);
+			}
+		};
+		
+		for (var i = 0; i < event.target.files.length; i++) {
+			var reader = new FileReader();
+			reader.onload = onloadF;
+			reader.readAsArrayBuffer(event.target.files[i]);
+		}
+		
 
 		selfController.modified = true;
 	};
@@ -242,6 +261,10 @@ Controller.prototype.loadRAW = function(selfController) {
 		var reader = new FileReader();
 		reader.onload = function(evt) {
 			app.setVolume(VolumeFactory.createVolumefromRaw(evt.target.result, bits, volumeSize, pixelSpacing));
+			if (selfController.gradientEditor)
+				selfController.updateTransferGradient(app.raycaster.transfer);
+			else
+				selfController.createGradient(app.raycaster.transfer);
 		};
 		reader.readAsArrayBuffer(event.target.files[0]);
 

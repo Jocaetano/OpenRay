@@ -3,11 +3,13 @@ var ImageFactory = ImageFactory || {};
 ImageFactory.createC3DEImages = function(files) {
 	ImageLoader.totalSize = files.length;
 
-	for (var i = 0; i <  files.length; i++) {
+	var reader = new FileReader();
+	var onloadF = function (evt) {
+		ImageLoader.pushImage(ImageLoader.loadImage(evt.target.result));
+	};
+	for (var i = 0; i < files.length; i++) {
 		var reader = new FileReader();
-		reader.onload = function(evt)     {
-			ImageLoader.pushImage(ImageLoader.loadImage(evt.target.result));
-		};
+		reader.onload = onloadF;
 		reader.readAsArrayBuffer(files[i]);
 	}
 };
@@ -16,16 +18,17 @@ ImageFactory.createC3DEImagesFromWeb = function() {
 
 	ImageLoader.totalSize = 300;
 	
+	var onloadF = function (evt) {
+		ImageLoader.pushImage(ImageLoader.loadImage(this.response));
+	};
+		
 	for(var i = 100; i <= 400; i++) {
 		var xhr = new XMLHttpRequest();
 		xhr.open('GET', './ANGIO_CT/IM-0001-0' + i + '.dcm', true);
 
 		xhr.responseType = 'arraybuffer';
 
-		xhr.onload = function(e) {
-			ImageLoader.pushImage(ImageLoader.loadImage(this.response));
-		};
-
+		xhr.onload = onloadF;
 		xhr.send();
 	}
 };

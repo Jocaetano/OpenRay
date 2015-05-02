@@ -133,9 +133,5 @@ ImageLoader.extractUncompressedPixels = function(dataset, width, height)	{
 }
 
 ImageLoader.pushImage = function(image) {
-	ImageLoader.imgs.push(image);
-	if(ImageLoader.totalSize <= ImageLoader.imgs.length) {
-		app.setVolume(VolumeFactory.createDicomVolume(ImageLoader.imgs));
-		ImageLoader.imgs.length = 0;;
-	}
+	ImageLoader.imgs.push(image);	
 };
