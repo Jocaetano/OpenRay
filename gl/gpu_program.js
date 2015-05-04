@@ -1,57 +1,88 @@
-
-function GpuProgram() {
-	this._program = gl.createProgram();
-	this._directives = new Array();
-	this._vertexShader = new GpuShader(gl.VERTEX_SHADER);
-	this._fragShader = new GpuShader(gl.FRAGMENT_SHADER);
-}
-
-GpuProgram.prototype.attachShaders = function() {
-	gl.attachShader(this._program, this._vertexShader.getShader());
-	gl.attachShader(this._program, this._fragShader.getShader());
-};
-
-GpuProgram.prototype.loadVertexShader = function(url) {
-	this._vertexShader.loadShaderFromURL(url);
-};
-
-GpuProgram.prototype.restartProgram = function() {
-	gl.deleteProgram(this._program);
-	this._program = gl.createProgram();
+define(['gpuShader'], function (GpuShader) {
+	'use strict';
 	
-	this.attachShaders();
-	
-	this.linkProgram();
-};
-
-GpuProgram.prototype.loadFragmentShader = function(url) {
-	this._fragShader.loadShaderFromURL(url);
-};
-
-GpuProgram.prototype.linkProgram = function() {
-
-	gl.linkProgram(this._program);
-	
-	if (!gl.getProgramParameter(this._program, gl.LINK_STATUS)) {
-		console.log(gl.getProgramInfoLog (this._program));
+	function GpuProgram() {
+		this.program = gl.createProgram();
+		this.vertexShader = new GpuShader(gl.VERTEX_SHADER);
+		this.fragShader = new GpuShader(gl.FRAGMENT_SHADER);
 	}
 
-//	gl.deleteShader(this._vertexShader);
-//	gl.deleteShader(this._fragShader);
-};
+	GpuProgram.prototype = {
 
-GpuProgram.prototype.addAttribute = function(attribute) {
-	return gl.getAttribLocation(this._program, attribute);
-};
+		loadFragmentShader: function (url) {
+			this.fragShader.loadShaderFromURL(url);
+		},
 
-GpuProgram.prototype.addUniform = function(uniform) {
-	return gl.getUniformLocation(this._program, uniform);
-};
+		loadVertexShader: function (url) {
+			this.vertexShader.loadShaderFromURL(url);
+		},
 
-GpuProgram.prototype.getProgram = function() {
-	return this._program;
-};
+		addExtraCodeFragment: function (code) {
+			this.fragShader.addExtraCode(code);
+		},
 
-GpuProgram.prototype.bind = function() {
-	gl.useProgram(this._program);
-};
+		addExtraCodeVertex: function (code) {
+			this.vertexShader.addExtraCode(code);
+		},
+
+		addDirectiveFragment: function (directive) {
+			this.fragShader.addDirective(directive);
+		},
+
+		addDirectiveVertex: function (directive) {
+			this.vertexShader.addDirective(directive);
+		},
+
+		compileFragmentShader: function () {
+			this.fragShader.compile();
+		},
+
+		compileVertexShader: function () {
+			this.vertexShader.compile();
+		},
+
+		addAttribute: function (attribute) {
+			return gl.getAttribLocation(this.program, attribute);
+		},
+
+		addUniform: function (uniform) {
+			return gl.getUniformLocation(this.program, uniform);
+		},
+
+		getProgram: function () {
+			return this.program;
+		},
+
+		bind: function () {
+			gl.useProgram(this.program);
+		},
+
+		linkProgram: function () {
+
+			gl.linkProgram(this.program);
+
+			if (!gl.getProgramParameter(this.program, gl.LINK_STATUS)) {
+				console.log(gl.getProgramInfoLog(this.program));
+			}
+
+			//	gl.deleteShader(this.vertexShader);
+			//	gl.deleteShader(this.fragShader);
+		},
+
+		restartProgram: function () {
+			gl.deleteProgram(this.program);
+			this.program = gl.createProgram();
+
+			this.attachShaders();
+
+			this.linkProgram();
+		},
+
+		attachShaders: function () {
+			gl.attachShader(this.program, this.vertexShader.getShader());
+			gl.attachShader(this.program, this.fragShader.getShader());
+		}
+	};
+
+	return GpuProgram;
+});

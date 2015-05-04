@@ -1,3 +1,16 @@
+// For any third party dependencies, like jQuery, place them in the lib folder.
+
+// Configure loading modules from the lib directory,
+// except for 'app' ones, which are in a sibling
+// directory.
+require.config({
+    baseUrl: './',
+    paths: {
+        app: 'app',
+		raycaster: '../dist/openray.min',
+		gpuProgram: '../gl/gpu_program'
+    }
+});
 
 var gl;
 
@@ -16,12 +29,13 @@ function initGL(canvas) {
 var controller;
 var app;
 
-define(function(require) {
+define(function (require) {
 	console.log("WebGLStart");
 	initGL(document.getElementById("raywebgl"));
 
-	controller = new Controller();
-	require(['./app'], function (App) {
-		app = new App();
+	require(['app'], function (App) {
+		app = App;
+		app.start();
+		controller = new Controller();
 	});
 });

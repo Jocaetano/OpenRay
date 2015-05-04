@@ -99,23 +99,25 @@ GradientEditor.prototype.stopCanvasMouseDownHandler = function(gradientEditor) {
 			document.addEventListener("mousemove",  gradientEditor.handleMouseMove, false);
 		}	
 		else if(event.button == 2) {
-			var update = function() {
-				gradientEditor.transfer.updateColor(gradientEditor.stopPointSelected, new Color(this.red, this.green, this.blue, this.alpha));
-				gradientEditor.update();
-			};
+			require(['../../transferFunction/color'], function (Color) {
+				var update = function () {
+					gradientEditor.transfer.updateColor(gradientEditor.stopPointSelected, new Color(this.red, this.green, this.blue, this.alpha));
+					gradientEditor.update();
+				};
 
-			var position = event.offsetX/gradientEditor.stopPointsCanvas.width;
+				var position = event.offsetX / gradientEditor.stopPointsCanvas.width;
 
-			var color32 = gradientEditor.transfer.getColorAt(position);
-			//Can we change this to something like Color.rgbaToColor() with modules?
-			var color = new Color((color32 & 0x000000FF), (color32 & 0x0000FF00) >> 8, (color32 & 0x00FF0000) >> 16, color32 >>> 24);
-
-			if(!hitStopPoint) {
-				gradientEditor.stopPointSelected = gradientEditor.transfer.insert(position, color);
-				gradientEditor.update();
-			}
+				var color32 = gradientEditor.transfer.getColorAt(position);
 			
-			new ColorPicker({'x': event.layerX, 'y': event.layerY}, "colorPicker", update, color);
+				var color = new Color((color32 & 0x000000FF),(color32 & 0x0000FF00) >> 8,(color32 & 0x00FF0000) >> 16, color32 >>> 24);
+
+				if (!hitStopPoint) {
+					gradientEditor.stopPointSelected = gradientEditor.transfer.insert(position, color);
+					gradientEditor.update();
+				}
+
+				new ColorPicker({ 'x': event.layerX, 'y': event.layerY }, "colorPicker", update, color);
+			});
 		}
 		else if(event.button == 1 && hitStopPoint) {
 			gradientEditor.transfer.remove(gradientEditor.stopPointSelected);

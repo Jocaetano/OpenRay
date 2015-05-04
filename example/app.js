@@ -1,5 +1,7 @@
 
-define(['../raycaster'], function (Raycaster) {
+define(['raycaster', 'gpuProgram'], function (openray, GpuProgram) {
+	'use strict';
+	
 	//private
 	var _pMatrix = mat4.create();
 	var _program = initShaders();
@@ -22,8 +24,8 @@ define(['../raycaster'], function (Raycaster) {
 	function initShaders() {
 		var shaderProgram = new GpuProgram();
 
-		shaderProgram._vertexShader.loadShaderFromURL('./shaders/appShader.vert');
-		shaderProgram._fragShader.loadShaderFromURL('./shaders/appShader.frag');
+		shaderProgram.loadVertexShader('./shaders/appShader.vert');
+		shaderProgram.loadFragmentShader('./shaders/appShader.frag');
 		shaderProgram.attachShaders();
 		shaderProgram.linkProgram();
 		shaderProgram.bind();
@@ -46,12 +48,13 @@ define(['../raycaster'], function (Raycaster) {
 		gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 	}
 	
-	//public
-	function App() {
-		gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
-	}
-	
-    App.prototype = {
+	//public	
+    return {
+		start: function () {
+			gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
+			this.raycaster = openray;
+		},
+		
         askRAW: function() {
 			// this is a "call" to loadDicom() on controller.js
 			document.getElementById('rawFile').click(); 
@@ -67,7 +70,7 @@ define(['../raycaster'], function (Raycaster) {
 		},
 
 		createRaycaster: function () {
-			this.raycaster = new Raycaster(gl.viewportWidth, gl.viewportHeight, _volume);
+			this.raycaster.init(gl.viewportWidth, gl.viewportHeight, _volume);
 			this.running = true;
 			tick();
 		},
@@ -87,8 +90,6 @@ define(['../raycaster'], function (Raycaster) {
 			drawScene();
 		}, 
     };
-	
-	return App;
 });
 
 function tick() {
