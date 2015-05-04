@@ -45,7 +45,7 @@ ColorPicker.prototype.updateColorMapWidget = function(blue) {
 	
 	for(var i = 0; i < 256; i++) {
 		for(var j = 0; j < 256; j++) {
-			index = (i + j * imageData.width) * 4;
+			var index = (i + j * imageData.width) * 4;
 		    imageData.data[index+0] = i;
 		    imageData.data[index+1] = j;
 		    imageData.data[index+2] = blue;
@@ -85,7 +85,7 @@ ColorPicker.prototype.createColorMapWidget = function() {
 	
 	for(var i = 0; i < 256; i++) {
 		for(var j = 0; j < 256; j++) {
-			index = (i + j * imageData.width) * 4;
+			var index = (i + j * imageData.width) * 4;
 		    imageData.data[index+0] = i;
 		    imageData.data[index+1] = j;
 		    imageData.data[index+2] = this.blue;
@@ -114,8 +114,8 @@ ColorPicker.prototype.createColorMapWidget = function() {
 	var self = this;
 	
 	var listener = function(event) {
-		huePoint.style.left  = event.offsetX - 7.5;
-		huePoint.style.top   = event.offsetY - 7.5;
+		huePoint.style.left  = (event.offsetX - 7.5).toString();
+		huePoint.style.top   = (event.offsetY - 7.5).toString();
 		self.red = event.offsetX + 1;
 		self.green = event.offsetY + 1;
 		self.update();
@@ -170,8 +170,8 @@ ColorPicker.prototype.createBlueWidget = function() {
 	
 	var self = this;
 	
-	var listener = function(event, valueWidget) {
-		rangeArrows.style.top   = event.offsetY - 4,5;
+	var listener = function (event, valueWidget) {
+		rangeArrows.style.top = (event.offsetY - 4, 5).toString();
 		self.blue = (event.offsetY) + 1;
 		self.updateColorMapWidget((event.offsetY) + 1);
 		self.update();
@@ -230,7 +230,7 @@ ColorPicker.prototype.createAlphaWidget = function() {
 	var self = this;
 	
 	var listener = function(event, alphaWidget) {
-		rangeArrows.style.top   = event.offsetY - 4,5;
+		rangeArrows.style.top = (event.offsetY - 4,5).toString();
 		self.alpha = (event.offsetY + 1);
 		self.update();
 	};
@@ -254,10 +254,5 @@ ColorPicker.prototype.createGradientPattern = function() {
 	pctx.fillStyle = "rgb(255, 255, 255)";
 	pctx.fillRect (5, 0, 5, 5);
 
-	var pattern = pctx.createPattern(pattern, "repeat");
-	return pattern;
-};
-
-ColorPicker.prototype.getColor = function() {
-	return {'color': new Color(this.red, this.green, this.blue), 'a': this.alpha};
+	return pctx.createPattern(pattern, "repeat");;
 };
