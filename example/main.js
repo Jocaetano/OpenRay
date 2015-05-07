@@ -6,7 +6,7 @@
 require.config({
     baseUrl: './',
     paths: {
-        app: 'app',
+		volume_factory: '../dist/volume.min',
 		raycaster: '../dist/openray.min',
 		gpuProgram: '../gl/gpu_program'
     }
@@ -14,28 +14,17 @@ require.config({
 
 var gl;
 
-function initGL(canvas) {
-	try {
-		gl = WebGLUtils.setupWebGL(canvas);
-		gl.viewportWidth = canvas.width;
-		gl.viewportHeight = canvas.height;
-	} catch (e) {
-	}
-	if (!gl) {
-		alert("Could not initialise WebGL, sorry :-(");
-	}
-}
-
 var controller;
 var app;
 
 define(function (require) {
 	console.log("WebGLStart");
-	initGL(document.getElementById("raywebgl"));
+	var glCanvas = document.getElementById("raywebgl");
+	gl = WebGLUtils.setupWebGL(glCanvas);
 
 	require(['app'], function (App) {
 		app = App;
-		app.start();
+		app.start(glCanvas.width, glCanvas.height);
 		controller = new Controller();
 	});
 });

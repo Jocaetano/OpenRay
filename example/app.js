@@ -4,11 +4,14 @@ define(['raycaster', 'gpuProgram'], function (openray, GpuProgram) {
 	
 	//private
 	var _pMatrix = mat4.create();
-	var _program = initShaders();
-	var _VboID = initBuffers();
+	var _program = _initShaders();
+	var _VboID = _initBuffers();
 	var _volume;
+	var _width = 0;
+	var _height = 0;
+	var _running = false;
 	
-	function initBuffers() {
+	function _initBuffers() {
 		var Vertices = [
 			0.0, 0.0, 1.0, 0.0,
 			0.0, 1.0, 1.0, 1.0,
@@ -21,7 +24,7 @@ define(['raycaster', 'gpuProgram'], function (openray, GpuProgram) {
 		return VboID;
 	}
 
-	function initShaders() {
+	function _initShaders() {
 		var shaderProgram = new GpuProgram();
 
 		shaderProgram.loadVertexShader('./shaders/appShader.vert');
@@ -36,7 +39,7 @@ define(['raycaster', 'gpuProgram'], function (openray, GpuProgram) {
 		return shaderProgram;
 	}
 			
-	function drawScene() {
+	function _drawScene() {
 		gl.disable(gl.CULL_FACE);
 
 		mat4.ortho(_pMatrix, 0.0, 1.0, 0.0, 1.0, -1.0, 1.0);
@@ -50,35 +53,22 @@ define(['raycaster', 'gpuProgram'], function (openray, GpuProgram) {
 	
 	//public	
     return {
-		start: function () {
-			gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
+		start: function (width, height) {
+			_width = width, _height = height;
+			gl.viewport(0, 0, _width, _height);
 			this.raycaster = openray;
-		},
-		
-        askRAW: function() {
-			// this is a "call" to loadDicom() on controller.js
-			document.getElementById('rawFile').click(); 
-
-			//	ImageFactory.createRAWFromWeb();
-        },
-		
-		askDicomImages: function() {
-			// this is a "call" to loadDicom() on controller.js
-			document.getElementById('dicomFiles').click(); 
-	
-			//	ImageFactory.createC3DEImagesFromWeb();
 		},
 
 		createRaycaster: function () {
-			this.raycaster.init(gl.viewportWidth, gl.viewportHeight, _volume);
-			this.running = true;
+			this.raycaster.init(_width, _height, _volume);
+			_running = true;
 			tick();
 		},
 		
 		setVolume: function(volume) {
 			_volume = volume;
 
-			if (!this.running)
+			if (!_running)
 				this.createRaycaster();
 			else
 				this.raycaster.setVolume(_volume);
@@ -87,7 +77,7 @@ define(['raycaster', 'gpuProgram'], function (openray, GpuProgram) {
 		draw: function() {
 			this.raycaster.draw();
 			this.raycaster.get_resultTexture().bind(0);
-			drawScene();
+			_drawScene();
 		}, 
     };
 });

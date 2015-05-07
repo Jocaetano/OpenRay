@@ -1,18 +1,14 @@
 /// <reference path="../typings/jquery/jquery.d.ts"/>
-/* global GradientEditor */
-/* global VolumeFactory */
-/* global ImageFactory */
-/* global mat4 */
 /* global app */
 
 function Controller() {
 	var self = this;
-	
+
 	this.translateX = 0.0;
 	this.translateY = 0.0;
 	this.zoom = 10;
 	this.objectRotationMatrix = mat4.create();
-	
+
 	this.lastMouseX = 0.0;
 	this.lastMouseY = 0.0;
 
@@ -20,7 +16,7 @@ function Controller() {
 		$(".tabbed_content").show();
 	});
 
-	$(".tabbed_content").mouseleave(function() {
+	$(".tabbed_content").mouseleave(function () {
 		$(".tabbed_content").fadeOut('slow');;
 	});
 
@@ -58,8 +54,8 @@ function Controller() {
 	this.updateSliderZ = this.updateSlider(2, slider, this);
 	slider.addEventListener('input', this.updateSliderZ, false);
 
-	$(document).keyup(function(event) {
-		switch(event.keyCode) {
+	$(document).keyup(function (event) {
+		switch (event.keyCode) {
 			case 81: // Q
 				app.raycaster.changeRes(512, 512);
 				break;
@@ -91,12 +87,12 @@ function Controller() {
 		self.modified = true;
 	});
 
-	$("#dicomButton").click(function() {
+	$("#dicomButton").click(function () {
 		$("#dicomFiles").click(); self.modified = true;
 	});
 
 	$("#rawButton").click(this.showRawFileForm);
-	$('#submitRaw').click(function() {
+	$('#submitRaw').click(function () {
 		$("#rawFile").click(); self.modified = true;
 	});
 
@@ -113,15 +109,15 @@ function Controller() {
 	alphaGradientCheckBox.addEventListener('change', this.updateCheckBox, false);
 }
 
-Controller.prototype.updateCheckBox = function(phongCheckBox, alphaGradientCheckBox, selfController) {
-	return function(event) {
+Controller.prototype.updateCheckBox = function (phongCheckBox, alphaGradientCheckBox, selfController) {
+	return function (event) {
 		app.raycaster.restartProgram(phongCheckBox.checked, alphaGradientCheckBox.checked);
 		selfController.modified = true;
 	};
 };
 
-Controller.prototype.resetCamera = function(selfController) {
-	return function() {
+Controller.prototype.resetCamera = function (selfController) {
+	return function () {
 		selfController.translateX = 0.0;
 		selfController.translateY = 0.0;
 		selfController.zoom = 10;
@@ -133,35 +129,35 @@ Controller.prototype.resetCamera = function(selfController) {
 	};
 };
 
-Controller.prototype.updateSlider = function(index, slider, selfController) {
-	return function() {
+Controller.prototype.updateSlider = function (index, slider, selfController) {
+	return function () {
 		app.raycaster.changeLightDirection(index, slider.value);
 		selfController.modified = true;
 	};
 };
 
-Controller.prototype.saveTransfer = function(selfController) {
-	return function(event) {
+Controller.prototype.saveTransfer = function (selfController) {
+	return function (event) {
 		window.requestFileSystem = window.requestFileSystem || window.webkitRequestFileSystem;
 
-		window.requestFileSystem(window.TEMPORARY, 1024 * 1024, function(fs) {
-			fs.root.getFile('transfer.trf', { create: true }, function(fileEntry) {
-				fileEntry.createWriter(function(fileWriter) {
+		window.requestFileSystem(window.TEMPORARY, 1024 * 1024, function (fs) {
+			fs.root.getFile('transfer.trf', { create: true }, function (fileEntry) {
+				fileEntry.createWriter(function (fileWriter) {
 					var blob = new Blob([app.raycaster.get_transfer().serialize()]);
 
-					fileWriter.addEventListener("writeend", function() {
+					fileWriter.addEventListener("writeend", function () {
 						// navigate to file, will download
 						location.href = fileEntry.toURL();
 					}, false);
 
 					fileWriter.write(blob);
-				}, function() {});
-			}, function() {});
-		}, function() {});
+				}, function () { });
+			}, function () { });
+		}, function () { });
 	};
 };
 
-Controller.prototype.loadTransfer = function(selfController) {
+Controller.prototype.loadTransfer = function (selfController) {
 	return function (event) {
 		var files = event.target.files;
 		if (!files.length) {
@@ -171,7 +167,7 @@ Controller.prototype.loadTransfer = function(selfController) {
 
 		var file = files[0];
 		var reader = new FileReader();
-		reader.onloadend = function(evt) {
+		reader.onloadend = function (evt) {
 			if (evt.target.readyState == FileReader.DONE) {
 				var uint8Array = new Uint8Array(evt.target.result);
 				app.raycaster.loadTransferBuffer(uint8Array);
@@ -184,7 +180,7 @@ Controller.prototype.loadTransfer = function(selfController) {
 	};
 };
 
-Controller.prototype.mouseUpHandler = function(selfController) {
+Controller.prototype.mouseUpHandler = function (selfController) {
 	return function (event) {
 		selfController.canvasMouseDown = false;
 		selfController.stopMouseDown = false;
@@ -192,7 +188,7 @@ Controller.prototype.mouseUpHandler = function(selfController) {
 	};
 };
 
-Controller.prototype.mouseDownHandler = function(selfController) {
+Controller.prototype.mouseDownHandler = function (selfController) {
 	return function (event) {
 		selfController.canvasMouseDown = true;
 		selfController.lastMouseX = event.clientX;
@@ -202,7 +198,7 @@ Controller.prototype.mouseDownHandler = function(selfController) {
 	};
 };
 
-Controller.prototype.mouseWheelHandler = function(selfController) {
+Controller.prototype.mouseWheelHandler = function (selfController) {
 	return function (event) {
 		var evt = window.event || event;//equalize event object
 		var delta = evt.detail ? evt.detail * (-1) : evt.wheelDelta;
@@ -219,81 +215,84 @@ Controller.prototype.mouseWheelHandler = function(selfController) {
 	};
 };
 
-Controller.prototype.loadDicom = function(selfController) {
+Controller.prototype.loadDicom = function (selfController) {
 	return function (event) {
-		if (event.target.files.length < 2) {
-			console.log('Need 2 or more images');
-			return;
-		}
-
-		ImageLoader.totalSize = event.target.files.length;
-
-		var onloadF = function (evt) {
-			ImageLoader.pushImage(ImageLoader.loadImage(evt.target.result));
-			if (ImageLoader.totalSize <= ImageLoader.imgs.length) {
-				app.setVolume(VolumeFactory.createDicomVolume(ImageLoader.imgs));
-				ImageLoader.imgs.length = 0;;
-				if (selfController.gradientEditor)
-					selfController.updateTransferGradient(app.raycaster.get_transfer());
-				else
-					selfController.createGradient(app.raycaster.get_transfer());
+		require(['volume_factory'], function (VolumeFactory) {
+			if (event.target.files.length < 2) {
+				console.log('Need 2 or more images');
+				return;
 			}
-		};
-		
-		for (var i = 0; i < event.target.files.length; i++) {
-			var reader = new FileReader();
-			reader.onload = onloadF;
-			reader.readAsArrayBuffer(event.target.files[i]);
-		}
-		
 
-		selfController.modified = true;
+			var totalSize = event.target.files.length;
+			var imageFiles = [];
+
+			var onloadF = function (evt) {
+				imageFiles.push(evt.target.result);
+				if (totalSize <= imageFiles.length) {
+					selfController.setVolume(VolumeFactory.createDicomVolume(imageFiles));
+				}
+			};
+
+			for (var i = 0; i < event.target.files.length; i++) {
+				var reader = new FileReader();
+				reader.onload = onloadF;
+				reader.readAsArrayBuffer(event.target.files[i]);
+			}
+
+
+			selfController.modified = true;
+		});
 	};
 };
 
-Controller.prototype.loadRAW = function(selfController) {
+Controller.prototype.loadRAW = function (selfController) {
 	return function (event) {
+		require(['volume_factory'], function (VolumeFactory) {
+			var pixelSpacing = { x: parseFloat($("#psX").val()), y: parseFloat($("#psY").val()), z: parseFloat($("#psZ").val()) };
+			var volumeSize = { width: parseInt($("#width").val(), 10), height: parseInt($("#height").val(), 10), nslices: parseInt($("#nslices").val(), 10) };
+			var bits = $('input[name=bits]:checked', '#rawFileForm').val();
 
-		var pixelSpacing = { x: parseFloat($("#psX").val()), y: parseFloat($("#psY").val()), z: parseFloat($("#psZ").val()) };
-		var volumeSize = { width: parseInt($("#width").val(), 10), height: parseInt($("#height").val(), 10), nslices: parseInt($("#nslices").val(), 10) };
-		var bits = $('input[name=bits]:checked', '#rawFileForm').val();
+			var reader = new FileReader();
+			reader.onload = function (evt) {
+				selfController.setVolume(VolumeFactory.createVolumefromRaw(evt.target.result, bits, volumeSize, pixelSpacing));
+			};
+			reader.readAsArrayBuffer(event.target.files[0]);
 
-		var reader = new FileReader();
-		reader.onload = function(evt) {
-			app.setVolume(VolumeFactory.createVolumefromRaw(evt.target.result, bits, volumeSize, pixelSpacing));
-			if (selfController.gradientEditor)
-				selfController.updateTransferGradient(app.raycaster.get_transfer());
-			else
-				selfController.createGradient(app.raycaster.get_transfer());
-		};
-		reader.readAsArrayBuffer(event.target.files[0]);
-
-		selfController.hideRawFileForm();
-		selfController.modified = true;
+			selfController.hideRawFileForm();
+			selfController.modified = true;
+		});
 	};
+};
+
+Controller.prototype.setVolume = function (volume) {
+	app.setVolume(volume);
+	if (this.gradientEditor)
+		this.updateTransferGradient(app.raycaster.get_transfer());
+	else
+		this.createGradient(app.raycaster.get_transfer());
 };
 
 //Show rawFile popup
-Controller.prototype.showRawFileForm = function() {
-	$("#rawFileForm").css("display" , "block");
+Controller.prototype.showRawFileForm = function () {
+	$("#rawFileForm").css("display", "block");
 };
 
 //Hide rawFile popup
-Controller.prototype.hideRawFileForm = function() {
+Controller.prototype.hideRawFileForm = function () {
 	$("#rawFileForm").css("display", "none");
 };
 
-Controller.prototype.createGradient = function(transfer) {
+Controller.prototype.createGradient = function (transfer) {
 	this.gradientEditor = new GradientEditor(transfer);
 	this.modified = true;
 };
 
-Controller.prototype.updateTransferGradient = function(transfer) {
+Controller.prototype.updateTransferGradient = function (transfer) {
 	this.gradientEditor.update();
 	this.modified = true;
 };
 
-Controller.prototype.handleMouseMove = function(selfController) {
+Controller.prototype.handleMouseMove = function (selfController) {
 	return function (event) {
 		if (selfController.canvasMouseDown) {
 			var newX = event.clientX;
@@ -315,7 +314,7 @@ Controller.prototype.handleMouseMove = function(selfController) {
 
 				selfController.lastMouseX = newX;
 				selfController.lastMouseY = newY;
-				
+
 				app.raycaster.rotateCamera(selfController.objectRotationMatrix);
 			}
 			if (selfController.mouseButton == 1) {
@@ -324,7 +323,7 @@ Controller.prototype.handleMouseMove = function(selfController) {
 
 				selfController.lastMouseX = newX;
 				selfController.lastMouseY = newY;
-				
+
 				app.raycaster.moveCamera(selfController.translateX, selfController.translateY, selfController.zoom);
 			}
 			selfController.modified = true;
