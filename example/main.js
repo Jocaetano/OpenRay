@@ -6,8 +6,23 @@
 require.config({
     baseUrl: './',
     paths: {
-		volume_factory: '../dist/volume.min',
-		raycaster: '../dist/openray.min',
+		volume: '../volume/volume',
+		volume_factory: '..//volume/volume_factory',
+		box: '../volume/box',
+		image: '../image/image',
+		imageLoader: '../image/image_loader',
+		gpuProgram: '../gl/gpu_program',
+        gpuShader: '../gl/gpu_shader',
+        fbo: '../gl/fbo',
+        glTexture2d: '../gl/gl_texture_2d',
+        color: '../transferFunction/color',
+        transferFunciton: '../transferFunction/transfer_function',
+        glMatrix: '../thirdy/glMatrix/glMatrix.subset',
+		raycaster: '../raycaster',
+		w: '../volume/w',
+		worker: '../thirdy/require/worker',
+//		volume_factory: '../dist/volume.min',
+//		raycaster: '../dist/openray.min',
 		gpuProgram: '../gl/gpu_program'
     }
 });

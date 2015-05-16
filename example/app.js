@@ -20,7 +20,7 @@ define(['raycaster', 'gpuProgram'], function (openray, GpuProgram) {
 		var VboID = gl.createBuffer();
 		gl.bindBuffer(gl.ARRAY_BUFFER, VboID);
 		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(Vertices), gl.STATIC_DRAW);
-		
+
 		return VboID;
 	}
 
@@ -38,7 +38,7 @@ define(['raycaster', 'gpuProgram'], function (openray, GpuProgram) {
 
 		return shaderProgram;
 	}
-			
+
 	function _drawScene() {
 		gl.disable(gl.CULL_FACE);
 
@@ -57,15 +57,16 @@ define(['raycaster', 'gpuProgram'], function (openray, GpuProgram) {
 			_width = width, _height = height;
 			gl.viewport(0, 0, _width, _height);
 			this.raycaster = openray;
+			this.tick = this.tick(this);
 		},
 
 		createRaycaster: function () {
 			this.raycaster.init(_width, _height, _volume);
 			_running = true;
-			tick();
+			this.tick();
 		},
-		
-		setVolume: function(volume) {
+
+		setVolume: function (volume) {
 			_volume = volume;
 
 			if (!_running)
@@ -73,22 +74,24 @@ define(['raycaster', 'gpuProgram'], function (openray, GpuProgram) {
 			else
 				this.raycaster.setVolume(_volume);
 		},
-		
-		draw: function() {
+
+		draw: function () {
 			this.raycaster.draw();
 			this.raycaster.get_resultTexture().bind(0);
 			_drawScene();
-		}, 
+		},
+
+		tick: function (self) {
+			return function () {
+				window.requestAnimationFrame(self.tick);
+				if (controller.modified) {
+					self.draw();
+					controller.modified = false;
+				}
+			};
+		}
     };
 });
-
-function tick() {
-	requestAnimFrame(tick);
-	if(controller.modified) {
-		app.draw();
-		controller.modified = false;
-	}
-}
 
 
 
