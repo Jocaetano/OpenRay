@@ -1,4 +1,6 @@
-define(['volume', 'imageLoader', 'image'], function (Volume, ImageLoader, DicomImage) {
+define(['volume', 'image'], function (Volume, DicomImage) {
+	'use strict';
+
 	var VolumeFactory = VolumeFactory || {};
 
 	function _C3DEImageOrderer(img1, img2) {
@@ -38,13 +40,32 @@ define(['volume', 'imageLoader', 'image'], function (Volume, ImageLoader, DicomI
 
 	return {
 
-		createDicomVolume: function (imagesFiles) {
+		createDicomVolume: function (imagesFiles, callback) {
 			var images = [];
-			imagesFiles.forEach(function (element) {
-				images.push(ImageLoader.loadImage(element));
-			});
-			images.sort(_C3DEImageOrderer);
-			return new Volume(images[0].densityLimits(), images[0].imageInfo, images);;
+			var nCores = navigator.hardwareConcurrency || 2;
+			var wLength = Math.floor(imagesFiles.length / nCores);
+			var workers = [];
+			function wOnMessage(worker, start, end) {
+				return function (e) {
+					if (!e.data) {
+						for (var i = start; i < end; i++) {
+							worker.postMessage(imagesFiles[i]);
+						};
+					} else {
+						images.push(new DicomImage(e.data[0], e.data[1]));
+						if (images.length == imagesFiles.length) {
+							images.sort(_C3DEImageOrderer);
+							callback(new Volume(images[0].densityLimits(), images[0].imageInfo, images));
+						}
+					}
+				};
+			}
+			for (var i = 0; i < nCores - 1; i++) {
+				workers[i] = new Worker('../image/image_loader.js');
+				workers[i].onmessage = wOnMessage(workers[i], wLength*i, wLength*(i+1));
+			}
+			workers[i] = new Worker('../image/image_loader.js');
+			workers[i].onmessage = wOnMessage(workers[i], wLength*i, imagesFiles.length);
 		},
 
 		createVolumefromRaw: function (fileBuffer, pixelType, volumeSize, pixelSpacing) {

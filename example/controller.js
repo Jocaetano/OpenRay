@@ -229,7 +229,7 @@ Controller.prototype.loadDicom = function (selfController) {
 			var onloadF = function (evt) {
 				imageFiles.push(evt.target.result);
 				if (totalSize <= imageFiles.length) {
-					selfController.setVolume(VolumeFactory.createDicomVolume(imageFiles));
+					VolumeFactory.createDicomVolume(imageFiles, selfController.setVolume(selfController));
 				}
 			};
 
@@ -264,12 +264,14 @@ Controller.prototype.loadRAW = function (selfController) {
 	};
 };
 
-Controller.prototype.setVolume = function (volume) {
-	app.setVolume(volume);
-	if (this.gradientEditor)
-		this.updateTransferGradient(app.raycaster.get_transfer());
-	else
-		this.createGradient(app.raycaster.get_transfer());
+Controller.prototype.setVolume = function (selfController) {
+	return function (volume) {
+		app.setVolume(volume);
+		if (selfController.gradientEditor)
+			selfController.updateTransferGradient(app.raycaster.get_transfer());
+		else
+			selfController.createGradient(app.raycaster.get_transfer());
+	};
 };
 
 //Show rawFile popup

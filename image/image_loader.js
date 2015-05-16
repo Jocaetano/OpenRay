@@ -1,5 +1,10 @@
-define(['image'], function (DicomImage) {
+importScripts('../thirdy/dicomParser/dicomParser.min.js');
+importScripts('../thirdy/jpeg/jpx.min.js');
+importScripts('../thirdy/require/require.min.js');
 
+require({ baseUrl: "./" }, function () {
+	postMessage(false);
+	
 	//THIS IS FROM cornerstoneWADOImageLoader
 	function _extractUncompressedPixels(dataset, width, height) {
 		var pixelFormat = _getPixelFormat(dataset);
@@ -56,82 +61,71 @@ define(['image'], function (DicomImage) {
 		}
 	};
 
-	var _imgs = [];
+	onmessage = function (msg) {
+		var info = {};
 
-	return {
-		loadImage: function (file) {
+		var dataset = dicomParser.parseDicom(new Uint8Array(msg.data));
 
-			var info = {};
-
-			var dataset = dicomParser.parseDicom(new Uint8Array(file));
-
-			//(0028, 0030) PixelSpacing
-			if (dataset.elements.x00280030) {
-				info.pixelSpacing = { x: dataset.floatString('x00280030', 0), y: dataset.floatString('x00280030', 1) };
-			}
-
-			//(0020, 0037) ImageOrientationPatient
-			if (dataset.elements.x00200037) {
-				info.xOrientation = { x: dataset.floatString('x00200037', 0), y: dataset.floatString('x00200037', 1), z: dataset.floatString('x00200037', 2) };
-				info.yOrientation = { x: dataset.floatString('x00200037', 3), y: dataset.floatString('x00200037', 4), z: dataset.floatString('x00200037', 5) };
-			}
-
-			//(0020, 0032) ImagePositionPatient
-			if (dataset.elements.x00200032) {
-				info.position = { x: dataset.floatString('x00200032', 0), y: dataset.floatString('x00200032', 1), z: dataset.floatString('x00200032', 2) };
-			}
-
-			if (dataset.elements.x00280002) info.samplesPerPixel = dataset.uint16('x00280002', 0);
-			if (dataset.elements.x00180050) info.sliceThickness = dataset.floatString('x00180050', 0);
-			if (dataset.elements.x00200013) info.sliceNum = dataset.intString('x00200013', 0);
-			if (dataset.elements.x00280103) info.pixelRepresentation = dataset.uint16('x00280103', 0);
-			if (dataset.elements.x00280100) info.bitsAllocated = dataset.uint16('x00280100', 0);
-			if (dataset.elements.x00280010) info.height = dataset.uint16('x00280010', 0);
-			if (dataset.elements.x00280011) info.width = dataset.uint16('x00280011', 0);
-			if (dataset.elements.x00281052) info.rescaleIntercept = dataset.floatString('x00281052', 0);
-			if (dataset.elements.x00281053) info.rescaleSlope = dataset.floatString('x00281053', 0);
-			if (dataset.elements.x00080008) info.imageType = dataset.string('x00080008', 0);
-			if (dataset.elements.x00100010) info.patientName = dataset.string('x00100010', 0);
-			if (dataset.elements.x00100040) info.patientSex = dataset.string('x00100040', 0);
-			if (dataset.elements.x00101005) info.patientBirthDate = dataset.string('x00101005', 0);
-			if (dataset.elements.x00101010) info.patientAge = dataset.intString('x00101010', 0);
-			if (dataset.elements.x00280008) info.numberOfFrames = dataset.intString('x00280008', 0);
-			if (dataset.elements.x00280009) info.frameIncrementPointer = dataset.floatString('x00280009', 0);
-			if (dataset.elements.x00181063) info.frameTime = dataset.floatString('x00181063', 0);
-			if (dataset.elements.x00181065) info.frameTimeVector = dataset.floatString('x00181065', 0);
-
-			var photoMetricInterpretation;
-			if (dataset.elements.x00280004) photoMetricInterpretation = dataset.string('x00280004', 0);
-			info.invert = (photoMetricInterpretation === "MONOCHROME1");
-			info.size = info.height * info.width;
-
-			//THIS IS FROM cornerstoneWADOImageLoader
-			if (photoMetricInterpretation === "RGB" ||
-				photoMetricInterpretation === "PALETTE COLOR" ||
-				photoMetricInterpretation === "YBR_FULL" ||
-				photoMetricInterpretation === "YBR_FULL_422" ||
-				photoMetricInterpretation === "YBR_PARTIAL_422" ||
-				photoMetricInterpretation === "YBR_PARTIAL_420" ||
-				photoMetricInterpretation === "YBR_RCT") {
-				console.log("Color image not supported = " + photoMetricInterpretation);
-			} else {
-				var transferSyntax = dataset.string('x00020010');
-
-				var imageData;
-				if (transferSyntax === "1.2.840.10008.1.2.4.90" || // JPEG 2000 lossless
-					transferSyntax === "1.2.840.10008.1.2.4.91") // JPEG 2000 lossy	
-					imageData = _extractJPEG2000Pixels(dataset, info.width, info.height, 0);
-				else
-					imageData = _extractUncompressedPixels(dataset, info.width, info.height);
-			}
-
-			var dicomImage = new DicomImage(info, imageData);
-
-			return dicomImage;
-		},
-
-		pushImage: function (image) {
-			_imgs.push(image);
+		//(0028, 0030) PixelSpacing
+		if (dataset.elements.x00280030) {
+			info.pixelSpacing = { x: dataset.floatString('x00280030', 0), y: dataset.floatString('x00280030', 1) };
 		}
+
+		//(0020, 0037) ImageOrientationPatient
+		if (dataset.elements.x00200037) {
+			info.xOrientation = { x: dataset.floatString('x00200037', 0), y: dataset.floatString('x00200037', 1), z: dataset.floatString('x00200037', 2) };
+			info.yOrientation = { x: dataset.floatString('x00200037', 3), y: dataset.floatString('x00200037', 4), z: dataset.floatString('x00200037', 5) };
+		}
+
+		//(0020, 0032) ImagePositionPatient
+		if (dataset.elements.x00200032) {
+			info.position = { x: dataset.floatString('x00200032', 0), y: dataset.floatString('x00200032', 1), z: dataset.floatString('x00200032', 2) };
+		}
+
+		if (dataset.elements.x00280002) info.samplesPerPixel = dataset.uint16('x00280002', 0);
+		if (dataset.elements.x00180050) info.sliceThickness = dataset.floatString('x00180050', 0);
+		if (dataset.elements.x00200013) info.sliceNum = dataset.intString('x00200013', 0);
+		if (dataset.elements.x00280103) info.pixelRepresentation = dataset.uint16('x00280103', 0);
+		if (dataset.elements.x00280100) info.bitsAllocated = dataset.uint16('x00280100', 0);
+		if (dataset.elements.x00280010) info.height = dataset.uint16('x00280010', 0);
+		if (dataset.elements.x00280011) info.width = dataset.uint16('x00280011', 0);
+		if (dataset.elements.x00281052) info.rescaleIntercept = dataset.floatString('x00281052', 0);
+		if (dataset.elements.x00281053) info.rescaleSlope = dataset.floatString('x00281053', 0);
+		if (dataset.elements.x00080008) info.imageType = dataset.string('x00080008', 0);
+		if (dataset.elements.x00100010) info.patientName = dataset.string('x00100010', 0);
+		if (dataset.elements.x00100040) info.patientSex = dataset.string('x00100040', 0);
+		if (dataset.elements.x00101005) info.patientBirthDate = dataset.string('x00101005', 0);
+		if (dataset.elements.x00101010) info.patientAge = dataset.intString('x00101010', 0);
+		if (dataset.elements.x00280008) info.numberOfFrames = dataset.intString('x00280008', 0);
+		if (dataset.elements.x00280009) info.frameIncrementPointer = dataset.floatString('x00280009', 0);
+		if (dataset.elements.x00181063) info.frameTime = dataset.floatString('x00181063', 0);
+		if (dataset.elements.x00181065) info.frameTimeVector = dataset.floatString('x00181065', 0);
+
+		var photoMetricInterpretation;
+		if (dataset.elements.x00280004) photoMetricInterpretation = dataset.string('x00280004', 0);
+		info.invert = (photoMetricInterpretation === "MONOCHROME1");
+		info.size = info.height * info.width;
+
+		//THIS IS FROM cornerstoneWADOImageLoader
+		if (photoMetricInterpretation === "RGB" ||
+			photoMetricInterpretation === "PALETTE COLOR" ||
+			photoMetricInterpretation === "YBR_FULL" ||
+			photoMetricInterpretation === "YBR_FULL_422" ||
+			photoMetricInterpretation === "YBR_PARTIAL_422" ||
+			photoMetricInterpretation === "YBR_PARTIAL_420" ||
+			photoMetricInterpretation === "YBR_RCT") {
+			console.log("Color image not supported = " + photoMetricInterpretation);
+		} else {
+			var transferSyntax = dataset.string('x00020010');
+
+			var imageData;
+			if (transferSyntax === "1.2.840.10008.1.2.4.90" || // JPEG 2000 lossless
+				transferSyntax === "1.2.840.10008.1.2.4.91") // JPEG 2000 lossy	
+				imageData = _extractJPEG2000Pixels(dataset, info.width, info.height, 0);
+			else
+				imageData = _extractUncompressedPixels(dataset, info.width, info.height);
+		}
+
+		postMessage([info, imageData]);
 	};
 });
