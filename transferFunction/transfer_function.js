@@ -1,6 +1,6 @@
 define(function () {
 	'use strict';
-	
+
 	function lower_bound(array, value, begin, end) {
 		begin = begin || 0;
 		end = end || array.length;
@@ -24,7 +24,7 @@ define(function () {
 		}
 		return array.length - 1;
 	}
-	
+
 
 	function _interpolation(colors, firstIt, secondIt, dist) {
 		var c1 = colors[firstIt].rgba;
@@ -204,9 +204,20 @@ define(function () {
 
 		getRangeMax: function () {
 			return this._max;
+		},
+
+		toJSON: function () {
+			return {
+				'nStops': this.nStops, 
+				'size': this.size, 
+				'_min': this._min, 
+				'_max': this._max, 
+				'_intervals': this._intervals, 
+				'_colors': this._colors
+			};
 		}
 	};
-	
+
 	return TransferFunction;
 
 });

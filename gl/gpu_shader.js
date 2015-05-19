@@ -5,6 +5,7 @@ define(function () {
 		this._shader = gl.createShader(shaderType);
 		this._directives = [];
 		this._extraCode = '';
+		this._source = '';
 	}
 
 	GpuShader.prototype = {
@@ -63,6 +64,14 @@ define(function () {
 
 		getShader: function () {
 			return this._shader;
+		},
+		
+		toJSON: function () {
+			return {
+				'source': this._source,
+				'directives': this._directives,
+				'extraCode': this._extraCode
+			};
 		}
 	};
 	

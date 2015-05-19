@@ -1,6 +1,6 @@
 define(['gpuShader'], function (GpuShader) {
 	'use strict';
-	
+
 	function GpuProgram() {
 		this.program = gl.createProgram();
 		this.vertexShader = new GpuShader(gl.VERTEX_SHADER);
@@ -81,6 +81,13 @@ define(['gpuShader'], function (GpuShader) {
 		attachShaders: function () {
 			gl.attachShader(this.program, this.vertexShader.getShader());
 			gl.attachShader(this.program, this.fragShader.getShader());
+		},
+
+		toJSON: function () {
+			return {
+				'vertexShader': this.vertexShader,
+				'fragShader': this.fragShader
+			};
 		}
 	};
 

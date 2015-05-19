@@ -486,6 +486,21 @@ define(['gpuProgram', 'fbo', 'glTexture2d', 'color', 'transferFunciton', 'glMatr
 
 			get_transfer: function () {
 				return _transfer;
+			},
+
+			toJSON: function () {
+				return {
+					//'gl': gl,
+					'width': _width,
+					'height': _height,
+					'translateX': _translateX,
+					'translateY': _translateY,
+					'zoom': _zoom,
+					'objectRotationMatrix': _objectRotationMatrix,
+					'transfer': _transfer,
+					'volumeProgram': _volumeProgram,
+					'endFBO': _endFBO
+				};
 			}
 		};
 	});
