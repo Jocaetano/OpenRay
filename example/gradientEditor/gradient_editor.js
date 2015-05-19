@@ -1,4 +1,5 @@
-function GradientEditor(transfer) {
+function GradientEditor(transfer, parentUpdate) {
+	this.parentUpdate = parentUpdate;
 	this.transfer = transfer;
 	this.gradientCanvas = document.getElementById('transferGradient');
 	this.context = this.gradientCanvas.getContext('2d');
@@ -35,7 +36,7 @@ GradientEditor.prototype.update = function()	{
 	this.context.fill();
 	
 	//TODO remove this
-	controller.modified = true;
+	this.parentUpdate();
 };
 
 GradientEditor.prototype.setTransfer = function(transfer)	{
