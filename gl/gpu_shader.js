@@ -1,8 +1,9 @@
 define(function () {
 	'use strict';
 	
-	function GpuShader(shaderType) {
-		this._shader = gl.createShader(shaderType);
+	function GpuShader(glContext, shaderType) {
+		this._gl = glContext;
+		this._shader = this._gl.createShader(shaderType);
 		this._directives = [];
 		this._extraCode = '';
 		this._source = '';
@@ -32,10 +33,10 @@ define(function () {
 			var source = this.appendDirectives(this._source);
 			source += this._extraCode;
 
-			gl.shaderSource(this._shader, source);
-			gl.compileShader(this._shader);
-			if (!gl.getShaderParameter(this._shader, gl.COMPILE_STATUS)) {
-				console.log(gl.getShaderInfoLog(this._shader));
+			this._gl.shaderSource(this._shader, source);
+			this._gl.compileShader(this._shader);
+			if (!this._gl.getShaderParameter(this._shader, this._gl.COMPILE_STATUS)) {
+				console.log(this._gl.getShaderInfoLog(this._shader));
 			}
 		},
 

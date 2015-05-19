@@ -1,10 +1,11 @@
 define(['gpuShader'], function (GpuShader) {
 	'use strict';
 
-	function GpuProgram() {
-		this.program = gl.createProgram();
-		this.vertexShader = new GpuShader(gl.VERTEX_SHADER);
-		this.fragShader = new GpuShader(gl.FRAGMENT_SHADER);
+	function GpuProgram(glContext) {
+		this._gl = glContext;
+		this.program = this._gl.createProgram();
+		this.vertexShader = new GpuShader(glContext, this._gl.VERTEX_SHADER);
+		this.fragShader = new GpuShader(glContext, this._gl.FRAGMENT_SHADER);
 	}
 
 	GpuProgram.prototype = {
@@ -42,11 +43,11 @@ define(['gpuShader'], function (GpuShader) {
 		},
 
 		addAttribute: function (attribute) {
-			return gl.getAttribLocation(this.program, attribute);
+			return this._gl.getAttribLocation(this.program, attribute);
 		},
 
 		addUniform: function (uniform) {
-			return gl.getUniformLocation(this.program, uniform);
+			return this._gl.getUniformLocation(this.program, uniform);
 		},
 
 		getProgram: function () {
@@ -54,24 +55,24 @@ define(['gpuShader'], function (GpuShader) {
 		},
 
 		bind: function () {
-			gl.useProgram(this.program);
+			this._gl.useProgram(this.program);
 		},
 
 		linkProgram: function () {
 
-			gl.linkProgram(this.program);
+			this._gl.linkProgram(this.program);
 
-			if (!gl.getProgramParameter(this.program, gl.LINK_STATUS)) {
-				console.log(gl.getProgramInfoLog(this.program));
+			if (!this._gl.getProgramParameter(this.program, this._gl.LINK_STATUS)) {
+				console.log(this._gl.getProgramInfoLog(this.program));
 			}
 
-			//	gl.deleteShader(this.vertexShader);
-			//	gl.deleteShader(this.fragShader);
+			//	this._gl.deleteShader(this.vertexShader);
+			//	this._gl.deleteShader(this.fragShader);
 		},
 
 		restartProgram: function () {
-			gl.deleteProgram(this.program);
-			this.program = gl.createProgram();
+			this._gl.deleteProgram(this.program);
+			this.program = this._gl.createProgram();
 
 			this.attachShaders();
 
@@ -79,8 +80,8 @@ define(['gpuShader'], function (GpuShader) {
 		},
 
 		attachShaders: function () {
-			gl.attachShader(this.program, this.vertexShader.getShader());
-			gl.attachShader(this.program, this.fragShader.getShader());
+			this._gl.attachShader(this.program, this.vertexShader.getShader());
+			this._gl.attachShader(this.program, this.fragShader.getShader());
 		},
 
 		toJSON: function () {

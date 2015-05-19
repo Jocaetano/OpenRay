@@ -21,25 +21,17 @@ require.config({
 		raycaster: '../raycaster',
 		w: '../volume/w',
 		worker: '../thirdy/require/worker',
-//		volume_factory: '../dist/volume.min',
-//		raycaster: '../dist/openray.min',
+		//		volume_factory: '../dist/volume.min',
+		//		raycaster: '../dist/openray.min',
 		gpuProgram: '../gl/gpu_program'
     }
 });
 
-var gl;
-
-var controller;
-var app;
-
-define(function (require) {
+define(['app'], function (App) {
 	console.log("WebGLStart");
 	var glCanvas = document.getElementById("raywebgl");
-	gl = WebGLUtils.setupWebGL(glCanvas);
+	var gl = WebGLUtils.setupWebGL(glCanvas);
 
-	require(['app'], function (App) {
-		app = App;
-		app.start(glCanvas.width, glCanvas.height);
-		controller = new Controller();
-	});
+	App.start(gl, glCanvas.width, glCanvas.height);
+	new Controller(App);
 });

@@ -1,7 +1,8 @@
 define(function () {
 	'use strict';
 
-	function GLTexture2D(widthVolume, height, format) {
+	function GLTexture2D(glContext, widthVolume, height, format) {
+		this._gl = glContext;
 		if (typeof widthVolume === "object")
 			this.loadFromVolume(widthVolume);
 		else
@@ -13,27 +14,27 @@ define(function () {
 			this.width = width;
 			this.height = height;
 			this.format = format;
-			gl.deleteTexture(this.tex);
-			this.tex = gl.createTexture();
-			gl.bindTexture(gl.TEXTURE_2D, this.tex);
-			gl.texImage2D(gl.TEXTURE_2D, 0, format, width, height, 0, format, gl.UNSIGNED_BYTE, null);
-			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+			this._gl.deleteTexture(this.tex);
+			this.tex = this._gl.createTexture();
+			this._gl.bindTexture(this._gl.TEXTURE_2D, this.tex);
+			this._gl.texImage2D(this._gl.TEXTURE_2D, 0, format, width, height, 0, format, this._gl.UNSIGNED_BYTE, null);
+			this._gl.texParameteri(this._gl.TEXTURE_2D, this._gl.TEXTURE_WRAP_S, this._gl.CLAMP_TO_EDGE);
+			this._gl.texParameteri(this._gl.TEXTURE_2D, this._gl.TEXTURE_WRAP_T, this._gl.CLAMP_TO_EDGE);
+			this._gl.texParameteri(this._gl.TEXTURE_2D, this._gl.TEXTURE_MAG_FILTER, this._gl.LINEAR);
+			this._gl.texParameteri(this._gl.TEXTURE_2D, this._gl.TEXTURE_MIN_FILTER, this._gl.LINEAR);
 		},
 
 		changeSize: function (width, height) {
 			this.width = width;
 			this.height = height;
-			gl.bindTexture(gl.TEXTURE_2D, this.tex);
-			gl.texImage2D(gl.TEXTURE_2D, 0, this.format, width, height, 0, this.format, gl.UNSIGNED_BYTE, null);
+			this._gl.bindTexture(this._gl.TEXTURE_2D, this.tex);
+			this._gl.texImage2D(this._gl.TEXTURE_2D, 0, this.format, width, height, 0, this.format, this._gl.UNSIGNED_BYTE, null);
 		},
 
 		bind: function (slot) {
 			slot = slot || 0;
-			gl.activeTexture(gl.TEXTURE0 + slot);
-			gl.bindTexture(gl.TEXTURE_2D, this.tex);
+			this._gl.activeTexture(this._gl.TEXTURE0 + slot);
+			this._gl.bindTexture(this._gl.TEXTURE_2D, this.tex);
 		},
 
 		getTextureID: function () {
@@ -44,7 +45,7 @@ define(function () {
 			var dicomSize = volume._imageWidth;
 			//length is the number of images in a row of the final image matrix 
 			var length = Math.ceil(Math.sqrt(volume._imgContainer.length));
-			this.createTexture((dicomSize + 2) * length,(dicomSize + 2) * length, gl.RGB);
+			this.createTexture((dicomSize + 2) * length,(dicomSize + 2) * length, this._gl.RGB);
 
 			//RGB
 			var bytesPerPixel = 3;
@@ -52,7 +53,7 @@ define(function () {
 			while ((dicomSize + 2) * bytesPerPixel * length % align) {
 				align = align >> 1;
 			}
-			gl.pixelStorei(gl.UNPACK_ALIGNMENT, align);
+			this._gl.pixelStorei(this._gl.UNPACK_ALIGNMENT, align);
 			//bytesRow is the number of bytes in a row of a single image
 			var bytesRow = dicomSize * bytesPerPixel;
 			var bytesRowT = (dicomSize + 2) * bytesPerPixel;
@@ -79,15 +80,15 @@ define(function () {
 				dataTexture.set(new Uint8Array(dataBuffer,(rowImage - 1) * bytesRow, bytesRow), rowTexture * bytesRowT * length + columnOffset + bytesPerPixel);
 				dataTexture.set(new Uint8Array(dataBuffer, imageSizeBytes - bytesPerPixel, bytesPerPixel), rowTexture * bytesRowT * length + columnOffset + bytesRow + bytesPerPixel);
 			}
-			this.updatePixels(dataTexture, gl.RGB);
+			this.updatePixels(dataTexture, this._gl.RGB);
 		},
 
 		updatePixels: function (data, format) {
-			gl.bindTexture(gl.TEXTURE_2D, this.tex);
+			this._gl.bindTexture(this._gl.TEXTURE_2D, this.tex);
 
-			gl.texImage2D(gl.TEXTURE_2D, 0, format, this.width, this.height, 0, format, gl.UNSIGNED_BYTE, data);
+			this._gl.texImage2D(this._gl.TEXTURE_2D, 0, format, this.width, this.height, 0, format, this._gl.UNSIGNED_BYTE, data);
 
-			gl.bindTexture(gl.TEXTURE_2D, null);
+			this._gl.bindTexture(this._gl.TEXTURE_2D, null);
 		}
 	};
 	
