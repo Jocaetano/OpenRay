@@ -246,7 +246,7 @@ define(['gpuProgram', 'fbo', 'glTexture2d', 'color', 'transferFunciton', 'glMatr
 			gl.uniformMatrix4fv(program.mvMatrixUniform, false, _mvMatrix);
 			gl.drawElements(gl.TRIANGLES, 36, gl.UNSIGNED_SHORT, 0);
 
-			gl.viewport(0, 0, 1024, 1024);
+			gl.viewport(0, 0, _widthView, _heightView);
 		}
 
 		function _calculateRayEnd() {
@@ -287,6 +287,7 @@ define(['gpuProgram', 'fbo', 'glTexture2d', 'color', 'transferFunciton', 'glMatr
 		}
 
 		var _width = 0, _height = 0;
+		var _widthView = 0, _heightView = 0;
 		var _volume;
 		var _slicesLength = [];
 		var _numSlices = 0;
@@ -328,9 +329,10 @@ define(['gpuProgram', 'fbo', 'glTexture2d', 'color', 'transferFunciton', 'glMatr
 		var _pMatrix = glm.mat4.create();
 
 		return {
-			
+
 			init: function (width, height, volume) {
 				_width = width; _height = height;
+				_widthView = width; _heightView = height;
 
 				_resultFBO.tex = new GLTexture2D(_width, _height, gl.RGBA);
 				_resultTexture = _resultFBO.tex;
@@ -485,5 +487,5 @@ define(['gpuProgram', 'fbo', 'glTexture2d', 'color', 'transferFunciton', 'glMatr
 			get_transfer: function () {
 				return _transfer;
 			}
-		};	
+		};
 	});
