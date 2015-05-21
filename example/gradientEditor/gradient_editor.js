@@ -7,14 +7,13 @@ function GradientEditor(transfer, parentUpdate) {
 	this.stopPointsCanvas = document.getElementById('stopPoints');
 	this.stopContext = this.stopPointsCanvas.getContext('2d');
 
-	this.stopMouseDown = false;
 	this.stopPointsCanvas.addEventListener("mousedown", this.stopCanvasMouseDownHandler(this), false);
 
 	var self = this;
 
 	this.handleMouseMove = this.handleMouseMove(this);
 	document.addEventListener("mouseup", function(event) {
-		self.stopMouseDown = false; document.removeEventListener("mousemove", self.handleMouseMove, false);
+		document.removeEventListener("mousemove", self.handleMouseMove, false);
 	}, false);
 	
 	this.update();
@@ -35,7 +34,6 @@ GradientEditor.prototype.update = function()	{
 	this.context.fillStyle = this.grd;
 	this.context.fill();
 	
-	//TODO remove this
 	this.parentUpdate();
 };
 
@@ -84,19 +82,20 @@ GradientEditor.prototype.addStopPoint = function(position, color)	{
 GradientEditor.prototype.stopCanvasMouseDownHandler = function(gradientEditor) {
 	return function (event) {
 		var hitStopPoint = false;
+		var hitLimits = false;
 
-		for(var i = 1; i < gradientEditor.transfer._intervals.length -1; i++) {
+		for(var i = 0; i < gradientEditor.transfer._intervals.length; i++) {
 			var interval = gradientEditor.transfer._intervals[i];
 			if((event.offsetX < gradientEditor.stopPointsCanvas.width*interval + 5) && (event.offsetX > gradientEditor.stopPointsCanvas.width*interval - 5)) {
 				hitStopPoint = true;
 				gradientEditor.stopPointSelected = i;
+				if (i == 0 || i == gradientEditor.transfer._intervals.length)
+					hitLimits = true;
 				break;
 			}
 		}
 
-		if(event.button == 0 && hitStopPoint) {
-			gradientEditor.stopMouseDown = true;
-			gradientEditor.mouseButton = event.button;
+		if(event.button == 0 && hitStopPoint && !hitLimits) {
 			document.addEventListener("mousemove",  gradientEditor.handleMouseMove, false);
 		}	
 		else if(event.button == 2) {
@@ -117,10 +116,10 @@ GradientEditor.prototype.stopCanvasMouseDownHandler = function(gradientEditor) {
 					gradientEditor.update();
 				}
 
-				new ColorPicker({ 'x': event.layerX, 'y': event.layerY }, "colorPicker", update, color);
+				new ColorPicker({ 'x': event.pageX, 'y': event.pageY }, "colorPicker", update, color);
 			});
 		}
-		else if(event.button == 1 && hitStopPoint) {
+		else if(event.button == 1 && hitStopPoint && !hitLimits) {
 			gradientEditor.transfer.remove(gradientEditor.stopPointSelected);
 			gradientEditor.update();
 		}
