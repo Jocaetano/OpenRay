@@ -3,14 +3,14 @@
 		<style>
 			body {
 				display: block;
-				background-color: #000000;
+				background-color: black;
 			}
 			
 			#raywebgl {
-				width: 30%;
 				background: black;
 				border: 1px solid white;
 				position: relative;
+				width: 30%;
 				left: 35%;
 			}
 			
@@ -18,8 +18,8 @@
 				position: absolute;
 				bottom: 0;
 				left: 50%;
-				background-color: #ffffff;
-				color: #000000;
+				background-color: white;
+				color: black;
 				width: 100px;	
 				font-size:200%;
 				cursor: pointer;
@@ -42,6 +42,8 @@
 				width: 50px;
 				height: 50px;
 				position: absolute;
+				background-color: white;
+				border-radius: 50px;
 				right: -14px;
 				top: -14px;
 				cursor: pointer;
@@ -49,17 +51,15 @@
 			
 			div#popup{
 				position: absolute; 
-				left: 50%;
 				top: 17%;
-				margin-left: -300px;
+				width: 30%;
+				left: 35%;
 			}
 			
 			form{
 				max-width: 600px;
 				min-width: 250px;
 				padding: 10px 50px;
-				border: 2px solid gray;
-				border-radius: 10px;
 				background-color: white;
 			}
 			
@@ -68,13 +68,12 @@
 				width:100%;
 				text-align:center;
 				display:block;
-				background-color:#FFBC00;
+				background-color:#7F822A;
 				color: white;
-				border: 1px solid #FFCB00;
+				border: 1px solid #7F822A;
 				padding: 10px 0;
 				font-size:20px;
 				cursor:pointer;
-				border-radius: 5px;
 			}
 		</style>
 		
@@ -83,15 +82,11 @@
 		
 		<link type='text/css' href='thirdy/css/tabbedContent.css' rel='stylesheet' />
 		
-		
 		<script type="text/javascript" src="../thirdy/glMatrix/glMatrix.min.js"></script>
-		<script type="text/javascript" src="../thirdy/dicomParser/dicomParser.min.js"></script>
-		<script type="text/javascript" src="../thirdy/jpeg/jpx.min.js"></script>
 			
 		<script type="text/javascript" src="thirdy/jquery/jquery.min.js"></script>
 		<script type="text/javascript" src="thirdy/jquery/jquery.mousewheel.min.js"></script>
 		<script type="text/javascript" src="thirdy/js/tabbedContent.js"></script>
-		<script type="text/javascript" src="thirdy/js/jcanvas.min.js"></script>
 			
 		<script type="text/javascript" src="webgl-utils.js"></script>
 		<script type="text/javascript" src="colorPicker/color_picker.js"></script>
@@ -109,7 +104,7 @@
 		<div id="rawFileForm" style="display: none;">
 			<div id="popup">
 				<form>
-					<img src="assets/close.png" id="close" onclick="controller.hideRawFileForm()" />Set the Volume Parameters
+					<img src="assets/close.png" id="close"" />Set the Volume Parameters
 					<div>Pixel Spacing</div>
 					<div>
 						<input type="number" id="psX" value="1.0">
@@ -136,6 +131,7 @@
 							<input name="sign" type="radio" value="1" id="16bit">Signed
 						</div>
 					</div>
+					<br><br>
 					<b id="submitRaw" ">Load</b>
             	</form>
         	</div>

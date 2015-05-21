@@ -40,11 +40,10 @@ function Controller(app) {
 	this.mouseUpHandler = this.mouseUpHandler(this);
 	$(document).mouseup(this.mouseUpHandler);
 
-	this.loadDicom = this.loadDicom(this);
-	$("#dicomFiles").change(this.loadDicom);
-
-	this.loadRAW = this.loadRAW(this);
-	$("#rawFile").change(this.loadRAW);
+	$("#dicomFiles").change(this.loadDicom(this));
+	$("#rawFile").change(this.loadRAW(this));
+	
+	$("img#close").click(this.hideRawFileForm);
 
 	var slider = document.getElementById('lightX');
 	this.updateSliderX = this.updateSlider(0, slider, this);
@@ -100,11 +99,8 @@ function Controller(app) {
 		$("#rawFile").click(); self.modified();
 	});
 
-	this.saveTransfer = this.saveTransfer(this);
-	$("#saveButton").click(this.saveTransfer);
-
-	this.loadTransfer = this.loadTransfer(this);
-	$("#loadButton").change(this.loadTransfer);
+	$("#saveButton").click(this.saveTransfer(this));
+	$("#loadButton").change(this.loadTransfer(this));
 
 	var phongCheckBox = document.getElementById('usePhong');
 	var alphaGradientCheckBox = document.getElementById('useAlphaGradient');
