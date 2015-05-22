@@ -55,7 +55,9 @@ define(function () {
 
 		this._observers = [];
 
-		//this.data = new Uint32Array(this.size);
+		var dataBuffer = new ArrayBuffer(this.size * 4);
+		this.data = new Uint8Array(dataBuffer);
+		this.data32 = new Uint32Array(dataBuffer);
 	}
 
 	TransferFunction.prototype = {
@@ -68,12 +70,49 @@ define(function () {
 			this._observers.forEach(function (element) { element.observedUpdate(); });
 		},
 
+		createData: function () {
+			for (var i = 0; i < this.size; i++) {
+				var position = i / (this.size - 1);
+				this.data32[i] = this.getColorAt(position);
+			}
+		},
+
 		push: function (interval, color) {
 			this._intervals.push(interval);
 			this._colors.push(color);
 			this.nStops++;
+		},
 
-			this.notifyObservers();
+		_getAoE: function (it) {
+			if (this.nStops < 2)
+				return;
+
+			var newData;
+			var length = 0;
+			var byteOffset = 0;
+
+			if (it == 0) {
+				length = ~~(this._intervals[1] * this.size);
+				newData = new Uint32Array(this.data32.buffer, 4, length);
+			} else if (it == this.nStops - 1) {
+				byteOffset = ~~(this._intervals[it - 1] * this.size);
+				length = ~~(this._intervals[it] * this.size) - byteOffset;
+				newData = new Uint32Array(this.data32.buffer, byteOffset * 4 + 4, length - 2);
+			} else {
+				byteOffset = ~~(this._intervals[it - 1] * this.size);
+				length = ~~(this._intervals[it + 1] * this.size) - byteOffset;
+				newData = new Uint32Array(this.data32.buffer, byteOffset * 4 + 4, length - 2);
+			}
+
+			return { data: newData, offset: byteOffset };
+		},
+
+		_updateData: function (newData, byteOffset) {
+			var p = 0.0;
+			for (var i = 0; i < newData.length; i++) {
+				p = (i + byteOffset) / (this.size - 1);
+				newData[i] = this.getColorAt(p);
+			}
 		},
 
 		insert: function (interval, color) {
@@ -83,53 +122,27 @@ define(function () {
 			this._colors.splice(it, 0, color);
 			this.nStops++;
 
+			var aoe = this._getAoE(it);
+			this._updateData(aoe.data, aoe.offset);
+
 			this.notifyObservers();
 
 			return it;
 		},
 
-		/*
-		_updateData: function (it) {
-			if (this.nStops < 2)
-				return;
-
-			var newData;
-			var length = 0;
-			var byteOffset = 0;
-
-			var t2 = performance.now();
-			if (it == 0) {
-				length = ~~(this._intervals[1] * this.size);
-				newData = new Uint32Array(this.data.buffer, 4, length);
-			} else if (it == this.nStops - 1) {
-				byteOffset = ~~(this._intervals[it - 1] * this.size);
-				length = ~~(this._intervals[it] * this.size) - byteOffset;
-				newData = new Uint32Array(this.data.buffer, byteOffset * 4 + 4, length - 2);
-			} else {
-				byteOffset = ~~(this._intervals[it - 1] * this.size);
-				length = ~~(this._intervals[it + 1] * this.size) - byteOffset;
-				newData = new Uint32Array(this.data.buffer, byteOffset * 4 + 4, length - 2);
-			}
-
-			for (var i = 0; i < newData.length; i++) {
-				var p = (i + byteOffset) / (this.size - 1);
-				newData[i] = this.color(p).rgba;
-			}
-
-			var t3 = performance.now();
-			console.log(t3 - t2);
-		},
-		*/
-
 		remove: function (position) {
-			this._intervals.splice(position, 1);
+			var aoe = this._getAoE(position);
 			this._colors.splice(position, 1);
+			this._intervals.splice(position, 1);
 			this.nStops--;
+			this._updateData(aoe.data, aoe.offset);
 			this.notifyObservers();
 		},
 
 		updateColor: function (position, color) {
 			this._colors[position] = color;
+			var aoe = this._getAoE(position);
+			this._updateData(aoe.data, aoe.offset);
 			this.notifyObservers();
 		},
 
@@ -145,6 +158,9 @@ define(function () {
 				this.swap(position, position - 1);
 				changed = -1;
 			}
+
+			var aoe = this._getAoE(position + changed);
+			this._updateData(aoe.data, aoe.offset);
 
 			this.notifyObservers();
 
@@ -208,11 +224,11 @@ define(function () {
 
 		toJSON: function () {
 			return {
-				'nStops': this.nStops, 
-				'size': this.size, 
-				'_min': this._min, 
-				'_max': this._max, 
-				'_intervals': this._intervals, 
+				'nStops': this.nStops,
+				'size': this.size,
+				'_min': this._min,
+				'_max': this._max,
+				'_intervals': this._intervals,
 				'_colors': this._colors
 			};
 		}

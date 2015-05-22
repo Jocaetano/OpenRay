@@ -268,19 +268,12 @@ define(['gpuProgram', 'fbo', 'glTexture2d', 'color', 'transferFunciton', 'glMatr
 			_transfer.push(0.08, new Color(128, 128, 0, 143));
 			_transfer.push(0.1, new Color(255, 255, 255, 179));
 			_transfer.push(1, new Color(255, 255, 255, 255));
+			_transfer.createData();
 		}
 
 		function _updateTransferFunctionTexture() {
-			var dataBuffer = new ArrayBuffer(_transferFunctionSize * 4);
-			var data = new Uint8Array(dataBuffer);
-			var data32 = new Uint32Array(dataBuffer);
-			for (var i = 0; i < _transferFunctionSize; i++) {
-				var position = i / (_transferFunctionSize - 1);
-				data32[i] = _transfer.getColorAt(position);
-			}
-
 			_transferFunctionTexture.bind();
-			_transferFunctionTexture.updatePixels(data, _gl.RGBA);
+			_transferFunctionTexture.updatePixels(_transfer.data, _gl.RGBA);
 			_raycastProgram.bind();
 			_gl.uniform1f(_raycastProgram.transferMinValue, _transfer.getRangeMin());
 			_gl.uniform1f(_raycastProgram.transferRangeValue, _transfer.getRangeMax() - _transfer.getRangeMin());
