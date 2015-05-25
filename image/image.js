@@ -15,7 +15,7 @@ define(function () {
 			this.min = this.buffer[0];
 			this.max = this.min;
 
-			for (var i = 0; i < this.imageInfo.size; ++i) {
+			for (var i = 0, ii = this.imageInfo.size; i < ii; ++i) {
 				var value = this.buffer[i];
 				if (value < this.min) {
 					this.min = value;
@@ -68,7 +68,7 @@ define(function () {
 			var int8View = new Uint8Array(buffer);
 
 			var index = 0;
-			for (var i = 0; i < this.imageInfo.size; ++i) {
+			for (var i = 0, ii = this.imageInfo.size; i < ii; ++i) {
 				int16View[0] = this.buffer[i];
 				index = 3 * i;
 				array[index] = int8View[0];
@@ -83,7 +83,7 @@ define(function () {
 			var int8View = new Uint8Array(buffer);
 
 			var index = 0;
-			for (var i = 0; i < this.imageInfo.size; ++i) {
+			for (var i = 0, ii = this.imageInfo.size; i < ii; ++i) {
 				int16View[0] = this.buffer[i] - this.min;
 				index = 3 * i;
 				array[index] = int8View[0];
@@ -94,12 +94,12 @@ define(function () {
 		from8toRGB: function (array) {
 			var index = 0;
 			if (this.imageInfo.invert)
-				for (var i = 0; i < this.imageInfo.size; ++i) {
+				for (var i = 0, ii = this.imageInfo.size; i < ii; ++i) {
 					index = 3 * i;
 					array[index] = !this.buffer[i];
 				}
 			else
-				for (var i = 0; i < this.imageInfo.size; ++i) {
+				for (var i = 0, ii = this.imageInfo.size; i < ii; ++i) {
 					index = 3 * i;
 					array[index] = this.buffer[i];
 				}
@@ -110,7 +110,7 @@ define(function () {
 			var newBuffer = new ArrayBuffer(bufferArray.byteLength);
 			this.buffer = new Int16Array(newBuffer);
 
-			for (var i = 0; i < this.imageInfo.size; ++i) {
+			for (var i = 0, ii = this.imageInfo.size; i < ii; ++i) {
 				this.buffer[i] = bufferArray[i] * this.imageInfo.rescaleSlope + this.imageInfo.rescaleIntercept;
 			}
 		}

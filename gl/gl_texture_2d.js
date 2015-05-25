@@ -64,7 +64,7 @@ define(function () {
 			var dataImage = new Uint8Array(dataBuffer, 0, imageSizeBytes);
 			var dataTexture = new Uint8Array(dataBuffer, imageSizeBytes);
 
-			for (var i = 0; i < volume._imgContainer.length; i++) {
+			for (var i = 0, ii = volume._imgContainer.length; i < ii; i++) {
 				volume._imgContainer[i].generateRGBData(dataImage);
 				var columnOffset = (i % length) * bytesRowT;
 				var rowOffset = Math.floor(i / length) * (dicomSize + 2);

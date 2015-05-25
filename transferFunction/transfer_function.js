@@ -71,7 +71,7 @@ define(function () {
 		},
 
 		createData: function () {
-			for (var i = 0; i < this.size; i++) {
+			for (var i = 0, ii = this.size; i < ii; i++) {
 				var position = i / (this.size - 1);
 				this.data32[i] = this.getColorAt(position);
 			}
@@ -109,7 +109,7 @@ define(function () {
 
 		_updateData: function (newData, byteOffset) {
 			var p = 0.0;
-			for (var i = 0; i < newData.length; i++) {
+			for (var i = 0, ii = newData.length; i < ii; i++) {
 				p = (i + byteOffset) / (this.size - 1);
 				newData[i] = this.getColorAt(p);
 			}
@@ -199,7 +199,7 @@ define(function () {
 			var resultBuffer = new Uint8Array(buffer);
 
 			resultBuffer[0] = this.nStops;
-			for (var i = 0; i < this.nStops; i++) {
+			for (var i = 0, ii = this.nStops; i < ii; i++) {
 				dataView.setFloat32(8 * i + 1, this.getInterval(i));
 				var colorData = this._colors[i];
 				resultBuffer[8 * i + 5] = colorData.r;

@@ -7,7 +7,7 @@ ImageFactory.createC3DEImages = function(files) {
 	var onloadF = function (evt) {
 		ImageLoader.pushImage(ImageLoader.loadImage(evt.target.result));
 	};
-	for (var i = 0; i < files.length; i++) {
+	for (var i = 0, ii = files.length; i < ii; i++) {
 		var reader = new FileReader();
 		reader.onload = onloadF;
 		reader.readAsArrayBuffer(files[i]);

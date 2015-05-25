@@ -239,7 +239,7 @@ Controller.prototype.loadDicom = function (selfController) {
 				}
 			};
 
-			for (var i = 0; i < event.target.files.length; i++) {
+			for (var i = 0, ii = event.target.files.length; i < ii; i++) {
 				var reader = new FileReader();
 				reader.onload = onloadF;
 				reader.readAsArrayBuffer(event.target.files[i]);

@@ -50,7 +50,7 @@ define(function () {
 
 		appendDirectives: function (string) {
 			if (this._directives.length > 0)
-				for (var i = 0; i < this._directives.length; i++)
+				for (var i = 0, ii = this._directives.length; i < ii; i++)
 					string = this._directives[i] + "\n" + string;
 			return string;
 		},

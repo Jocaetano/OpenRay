@@ -17,7 +17,7 @@ define(['box'], function (Box) {
 		this._rescale = imageInfo.rescaleIntercept - this._minDensity;
 
 		if (images) {
-			for (var i = 0; i < images.length; i++) {
+			for (var i = 0, ii = images.length; i < ii; i++) {
 				this.insertImage(images[i]);
 			}
 			this.calculatePixelSpacing();
@@ -39,7 +39,7 @@ define(['box'], function (Box) {
 		_recalculateBounding: function () {
 			var max_x = 1, max_y = 1, max_z = Math.max(this._imgContainer.length, 1);
 
-			for (var i = 0; i < this._imgContainer.length; i++) {
+			for (var i = 0, ii = this._imgContainer.length; i < ii; i++) {
 				var value;
 				value = this._imgContainer[i].imageInfo.width;
 				max_x = Math.max(value, max_x);
@@ -70,9 +70,8 @@ define(['box'], function (Box) {
 		@param images : a array of images to be inserted in the volume
 		*/
 		insertImages: function (images) {
-			for (var i = 0; i < images.length; i++) {
+			for (var i = 0, ii = images.length; i < ii; i++)
 				this.insertImage(images[i]);
-			}
 		},
 
 		/*Returns the Volume BoundingBox
@@ -102,6 +101,6 @@ define(['box'], function (Box) {
 			return this._pixelSpacing;
 		}
 	};
-	
+
 	return Volume;
 });
