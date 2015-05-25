@@ -17,9 +17,8 @@ define(['box'], function (Box) {
 		this._rescale = imageInfo.rescaleIntercept - this._minDensity;
 
 		if (images) {
-			for (var i = 0, ii = images.length; i < ii; i++) {
+			for (var i = 0, ii = images.length; i < ii; i++) 
 				this.insertImage(images[i]);
-			}
 			this.calculatePixelSpacing();
 		}
 	}
