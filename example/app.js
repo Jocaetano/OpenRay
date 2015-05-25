@@ -63,7 +63,7 @@ define(['raycaster', 'gpuProgram'], function (openray, GpuProgram) {
 			_gl.viewport(0, 0, _width, _height);
 			this.raycaster = openray;
 			this.modified = false;
-			this.tick = this.tick(this);
+			this.tick = this.tick.bind(this);
 		},
 
 		createRaycaster: function () {
@@ -87,14 +87,12 @@ define(['raycaster', 'gpuProgram'], function (openray, GpuProgram) {
 			_drawScene();
 		},
 
-		tick: function (self) {
-			return function () {
-				window.requestAnimationFrame(self.tick);
-				if (self.modified) {
-					self.draw();
-					self.modified = false;
-				}
-			};
+		tick: function () {
+			window.requestAnimationFrame(this.tick);
+			if (this.modified) {
+				this.draw();
+				this.modified = false;
+			}
 		}
     };
 });
