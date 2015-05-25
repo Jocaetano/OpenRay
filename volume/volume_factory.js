@@ -42,8 +42,8 @@ define(['volume', 'image'], function (Volume, DicomImage) {
 
 		createDicomVolume: function (imagesFiles, callback) {
 			var images = [];
-			var nCores = navigator.hardwareConcurrency || 2;
-			var wLength = Math.floor(imagesFiles.length / nCores);
+			var nWorkers = Math.min(imagesFiles.length, navigator.hardwareConcurrency || 2);
+			var wLength = Math.floor(imagesFiles.length / nWorkers);
 			var workers = [];
 			function wOnMessage(worker, start, end) {
 				return function (e) {
@@ -60,7 +60,7 @@ define(['volume', 'image'], function (Volume, DicomImage) {
 					}
 				};
 			}
-			for (var i = 0; i < nCores - 1; i++) {
+			for (var i = 0; i < nWorkers - 1; i++) {
 				workers[i] = new Worker('../image/image_loader.js');
 				workers[i].onmessage = wOnMessage(workers[i], wLength*i, wLength*(i+1));
 			}
