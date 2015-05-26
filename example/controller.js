@@ -222,12 +222,12 @@ Controller.prototype.loadDicom = function (event) {
 Controller.prototype.loadRAW = function (event) {
 	require(['volume_factory'], function (VolumeFactory) {
 		var pixelSpacing = { x: parseFloat($("#psX").val()), y: parseFloat($("#psY").val()), z: parseFloat($("#psZ").val()) };
-		var volumeSize = { width: parseInt($("#width").val(), 10), height: parseInt($("#height").val(), 10), nslices: parseInt($("#nslices").val(), 10) };
-		var bits = $('input[name=bits]:checked', '#rawFileForm').val();
+		var volumeSize = { width: +$("#width").val(), height: +$("#height").val(), nslices: +$("#nslices").val() };
+		var bits = +$('input[name=bits]:checked', '#rawFileForm').val();
 
 		var reader = new FileReader();
 		reader.onload = function (evt) {
-			this.setVolume(VolumeFactory.createVolumefromRaw(evt.target.result, bits, volumeSize, pixelSpacing)).bind(this);
+			this.setVolume(VolumeFactory.createVolumefromRaw(evt.target.result, bits, volumeSize, pixelSpacing));
 		}.bind(this);
 		reader.readAsArrayBuffer(event.target.files[0]);
 

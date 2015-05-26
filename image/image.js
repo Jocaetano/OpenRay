@@ -1,16 +1,37 @@
 
 define(function () {
 	'use strict';
-	
+
 	function DicomImage(info, buffer) {
 		this.imageInfo = info;
 		this.min = -1; //int16
 		this.max = -1; //int16
 
 		this.buffer = buffer;
+
+		switch (this.imageInfo.bitsAllocated) {
+			case 0:
+				this.generateRGBData = this.from8toRGB;
+				break;
+			case 1:
+				if (this.buffer instanceof Int16Array)
+					this.generateRGBData = this.fromInt16toRGB;
+				else
+					this.generateRGBData = this.fromUint16toRGB;
+				break;
+			case 2:
+				this.generateRGBData = function () { return console.log("24bit per sample not supported"); };
+				break;
+			case 3:
+				this.generateRGBData = function () { return console.log("32bit per sample not supported"); };
+				break;
+			default:
+				this.generateRGBData = function () { return console.log(this.imageInfo.bitsAllocated); };
+		}
 	};
 
 	DicomImage.prototype = {
+		
 		densityLimits: function () {
 			this.min = this.buffer[0];
 			this.max = this.min;
@@ -32,26 +53,7 @@ define(function () {
 		},
 
 		//16 bits to 24 bits(RGB)
-		generateRGBData: function (array) {
-			switch (this.imageInfo.bitsAllocated) {
-				case 8:
-					this.from8toRGB(array);
-					break;
-				case 16:
-					if (this.buffer instanceof Int16Array)
-						this.fromInt16toRGB(array);
-					else
-						this.fromUint16toRGB(array);
-					break;
-				case 24:
-					break;
-				case 32:
-					console.log("32bit per sample not supported yet");
-					break;
-				default:
-					console.log(this.imageInfo.bitsAllocated);
-			}
-		},
+		generateRGBData: function (array) {	},
 
 		fromUint16toRGB: function (array) {
 			//NEXT STEP, USE FLOAT64ARRAY TO READ
