@@ -1,5 +1,5 @@
-define(['gpuProgram', 'fbo', 'glTexture2d', 'color', 'transferFunciton', 'glMatrix'],
-	function (GpuProgram, FrameBufferObject, GLTexture2D, Color, TransferFunction, glm) {
+define(['gpuProgram', 'fbo', 'glTexture2d', 'color', 'transferFunciton', 'camera'],
+	function (GpuProgram, FrameBufferObject, GLTexture2D, Color, TransferFunction, Camera) {
 		'use strict';
 	
 		//private	
@@ -213,20 +213,17 @@ define(['gpuProgram', 'fbo', 'glTexture2d', 'color', 'transferFunciton', 'glMatr
 			_endFBO.tex.bind(++i);
 			_transferFunctionTexture.bind(++i);
 
-			var cam = glm.vec3.fromValues(0.0, 0.0, 1.0);
-			glm.vec3.add(cam, cam, glm.vec3.fromValues(_translateX, _translateY, -800.0));
-			glm.vec3.transformMat4(cam, cam, _objectRotationMatrix);
-			glm.vec3.normalize(cam, cam);
+			_camera.updatePos();
 
 			_raycastProgram.bind();
-			_gl.uniform3f(_raycastProgram.viewVector, cam[0], cam[1], cam[2]);
+			_gl.uniform3f(_raycastProgram.viewVector, _camera.pos[0], _camera.pos[1], _camera.pos[2]);
 			_gl.uniform3f(_raycastProgram.lightDirection, _light.position[0], _light.position[1], _light.position[2]);
 			_gl.uniform3f(_raycastProgram.lightAmbientColor, _light.ambient.r, _light.ambient.g, _light.ambient.b);
 			_gl.uniform3f(_raycastProgram.lightDiffuseColor, _light.diffuse.r, _light.diffuse.g, _light.diffuse.b);
 			_gl.uniform3f(_raycastProgram.lightSpecularColor, _light.specular.r, _light.specular.g, _light.specular.b);
 			_gl.uniform1f(_raycastProgram.lightShininess, 32.0);
 
-			_gl.uniformMatrix4fv(_raycastProgram.rotMatrixUniform, false, _objectRotationMatrix);
+			_gl.uniformMatrix4fv(_raycastProgram.rotMatrixUniform, false, _camera.objectRotationMatrix);
 
 			_drawVolumeBuffer(_raycastProgram);
 
@@ -235,15 +232,15 @@ define(['gpuProgram', 'fbo', 'glTexture2d', 'color', 'transferFunciton', 'glMatr
 
 		function _drawVolumeBuffer(program) {
 			_gl.viewport(0, 0, _width, _height);
-			glm.mat4.frustum(_pMatrix, -10 * _zoom, 10 * _zoom, -10 * _zoom, 10 * _zoom, 200, 2500.0);
+			_camera.perspective();
 
 			program.bind();
 			_gl.bindBuffer(_gl.ARRAY_BUFFER, _cubeVertexColorBuffer);
 			_gl.vertexAttribPointer(program.vertexColorAttribute, 4, _gl.FLOAT, false, 0, 0);
 			_gl.bindBuffer(_gl.ARRAY_BUFFER, _cubeVertexPositionBuffer);
 			_gl.vertexAttribPointer(program.vertexPositionAttribute, 3, _gl.FLOAT, false, 0, 0);
-			_gl.uniformMatrix4fv(program.pMatrixUniform, false, _pMatrix);
-			_gl.uniformMatrix4fv(program.mvMatrixUniform, false, _mvMatrix);
+			_gl.uniformMatrix4fv(program.pMatrixUniform, false, _camera.pMatrix);
+			_gl.uniformMatrix4fv(program.mvMatrixUniform, false, _camera.mvMatrix);
 			_gl.drawElements(_gl.TRIANGLES, 36, _gl.UNSIGNED_SHORT, 0);
 
 			_gl.viewport(0, 0, _widthView, _heightView);
@@ -302,10 +299,7 @@ define(['gpuProgram', 'fbo', 'glTexture2d', 'color', 'transferFunciton', 'glMatr
 		var _cubeVertexColorBuffer;
 		var _cubeVertexIndexBuffer;
 
-		var _translateX = 0.0;
-		var _translateY = 0.0;
-		var _zoom = 10;
-		var _objectRotationMatrix = glm.mat4.create();
+		var _camera = new Camera(10);
 
 		var _light = {
 			position: [0.0, -1.0, 0.0],
@@ -318,9 +312,6 @@ define(['gpuProgram', 'fbo', 'glTexture2d', 'color', 'transferFunciton', 'glMatr
 		var _transfer;
 		var _transferFunctionSize = 0;
 		var _transferFunctionTexture;
-
-		var _mvMatrix = glm.mat4.create();
-		var _pMatrix = glm.mat4.create();
 
 		return {
 
@@ -403,9 +394,7 @@ define(['gpuProgram', 'fbo', 'glTexture2d', 'color', 'transferFunciton', 'glMatr
 			draw: function () {
 				_gl.clearColor(0.0, 0.0, 0.0, 0.0);
 
-				glm.mat4.identity(_mvMatrix);
-				glm.mat4.translate(_mvMatrix, _mvMatrix, [_translateX, _translateY, -800.0]);
-				glm.mat4.multiply(_mvMatrix, _mvMatrix, _objectRotationMatrix);
+				_camera.transform();
 
 				_calculateRayEnd();
 				_castRays();
@@ -468,16 +457,6 @@ define(['gpuProgram', 'fbo', 'glTexture2d', 'color', 'transferFunciton', 'glMatr
 				_light.position[index] = value;
 			},
 
-			moveCamera: function (translateX, translateY, zoom) {
-				_translateX = translateX;
-				_translateY = translateY;
-				_zoom = zoom;
-			},
-
-			rotateCamera: function (objectRotationMatrix) {
-				_objectRotationMatrix = objectRotationMatrix;
-			},
-
 			observedUpdate: function () {
 				_updateTransferFunctionTexture();
 			},
@@ -489,16 +468,17 @@ define(['gpuProgram', 'fbo', 'glTexture2d', 'color', 'transferFunciton', 'glMatr
 			get_transfer: function () {
 				return _transfer;
 			},
+			
+			get_camera: function () {
+				return _camera;
+			},
 
 			toJSON: function () {
 				return {
 					//'gl': gl,
 					'width': _width,
 					'height': _height,
-					'translateX': _translateX,
-					'translateY': _translateY,
-					'zoom': _zoom,
-					'objectRotationMatrix': _objectRotationMatrix,
+					'camera': _camera,
 					'transfer': _transfer,
 					'volumeProgram': _volumeProgram,
 					'endFBO': _endFBO

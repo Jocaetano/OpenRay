@@ -27,7 +27,6 @@ function Controller(app) {
 
 	var canvas = $("#raywebgl");
 	canvas.mousewheel(this.mouseWheelHandler.bind(this));
-
 	canvas.mousedown(this.mouseDownHandler.bind(this));
 	$(document).mouseup(this.mouseUpHandler.bind(this));
 
@@ -163,9 +162,7 @@ Controller.prototype.loadTransfer = function (event) {
 };
 
 Controller.prototype.mouseUpHandler = function (event) {
-	this.canvasMouseDown = false;
-	this.stopMouseDown = false;
-	$(document).off("mousemove", this.handleMouseMove.bind(this));
+	$(document).off("mousemove");
 };
 
 Controller.prototype.mouseDownHandler = function (event) {
@@ -176,12 +173,27 @@ Controller.prototype.mouseDownHandler = function (event) {
 	$(document).mousemove(this.handleMouseMove.bind(this));
 };
 
+Controller.prototype.handleMouseMove = function (event) {
+	var newX = event.clientX;
+	var newY = event.clientY;
+	var deltaX = newX - this.lastMouseX;
+	var deltaY = newY - this.lastMouseY;
+	if (this.mouseButton == 2)
+		this.camera.rotate(deltaX, deltaY);
+	else if (this.mouseButton == 1)
+		this.camera.translate(deltaX, deltaY);
+	this.lastMouseX = newX;
+	this.lastMouseY = newY;
+	this.modified();
+
+	return;
+};
+
 Controller.prototype.mouseWheelHandler = function (event) {
 	var evt = window.event || event;//equalize event object
 	var delta = evt.detail ? evt.detail * (-1) : evt.wheelDelta;
 
-	this.zoom = -delta < 0 ? this.zoom = this.zoom * 0.9 : this.zoom * 1.1;
-	this.app.raycaster.moveCamera(this.translateX, this.translateY, this.zoom);
+	this.camera.changeZoom(delta);
 
 	this.modified();
 
@@ -242,6 +254,8 @@ Controller.prototype.setVolume = function (volume) {
 		this.updateTransferGradient(this.app.raycaster.get_transfer());
 	else
 		this.createGradient(this.app.raycaster.get_transfer());
+	if (!this.camera)
+		this.camera = this.app.raycaster.get_camera();
 };
 
 //Show rawFile popup
@@ -262,42 +276,4 @@ Controller.prototype.createGradient = function (transfer) {
 Controller.prototype.updateTransferGradient = function (transfer) {
 	this.gradientEditor.update();
 	this.modified();
-};
-
-Controller.prototype.handleMouseMove = function (event) {
-	if (this.canvasMouseDown) {
-		var newX = event.clientX;
-		var newY = event.clientY;
-		if (this.mouseButton == 2) {
-			var deltaX = newX - this.lastMouseX;
-			var xRotationMatrix = mat4.create();
-			mat4.rotateY(xRotationMatrix, xRotationMatrix,(deltaX / 60));
-
-			var deltaY = newY - this.lastMouseY;
-			var yRotationMatrix = mat4.create();
-			mat4.rotateX(yRotationMatrix, yRotationMatrix,(deltaY / 60));
-
-			var newRotationMatrix = mat4.create();
-			mat4.multiply(newRotationMatrix, xRotationMatrix, yRotationMatrix);
-
-			mat4.multiply(this.objectRotationMatrix, newRotationMatrix, this.objectRotationMatrix);
-
-			this.lastMouseX = newX;
-			this.lastMouseY = newY;
-
-			this.app.raycaster.rotateCamera(this.objectRotationMatrix);
-		}
-		if (this.mouseButton == 1) {
-			this.translateX += (newX - this.lastMouseX);
-			this.translateY -= (newY - this.lastMouseY);
-
-			this.lastMouseX = newX;
-			this.lastMouseY = newY;
-
-			this.app.raycaster.moveCamera(this.translateX, this.translateY, this.zoom);
-		}
-		this.modified();
-	}
-
-	return;
 };
