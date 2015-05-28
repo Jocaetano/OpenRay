@@ -1,16 +1,16 @@
-define(['gpuShader'], function (GpuShader) {
+define(['glShader'], function (GLShader) {
 	'use strict';
 
-	function GpuProgram(glContext) {
+	function GLProgram(glContext) {
 		this._gl = glContext;
 		this.program = this._gl.createProgram();
-		this.vertexShader = new GpuShader(glContext, this._gl.VERTEX_SHADER);
-		this.fragShader = new GpuShader(glContext, this._gl.FRAGMENT_SHADER);
+		this.vertexShader = new GLShader(glContext, this._gl.VERTEX_SHADER);
+		this.fragShader = new GLShader(glContext, this._gl.FRAGMENT_SHADER);
 		this.attributes = {};
 		this.uniforms = {};
 	}
 
-	GpuProgram.prototype = {
+	GLProgram.prototype = {
 
 		loadFragmentShader: function (url) {
 			this.fragShader.loadShaderFromURL(url);
@@ -168,5 +168,5 @@ define(['gpuShader'], function (GpuShader) {
 		}
 	};
 
-	return GpuProgram;
+	return GLProgram;
 });

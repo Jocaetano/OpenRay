@@ -11,20 +11,17 @@ require.config({
 		box: '../volume/box',
 		image: '../image/image',
 		imageLoader: '../image/image_loader',
-		gpuProgram: '../gl/gpu_program',
-        gpuShader: '../gl/gpu_shader',
+		glProgram: '../gl/gl_program',
+        glShader: '../gl/gl_shader',
         fbo: '../gl/fbo',
         glTexture2d: '../gl/gl_texture_2d',
         color: '../transferFunction/color',
         transferFunciton: '../transferFunction/transfer_function',
 		camera: '..	/camera/camera',
         glMatrix: '../thirdy/glMatrix/glMatrix.min',
-		raycaster: '../raycaster',
-		w: '../volume/w',
-		worker: '../thirdy/require/worker',
+		raycaster: '../raycaster'
 		//		volume_factory: '../dist/volume.min',
 		//		raycaster: '../dist/openray.min',
-		gpuProgram: '../gl/gpu_program'
     }
 });
 

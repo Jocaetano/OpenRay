@@ -1,5 +1,5 @@
 
-define(['raycaster', 'gpuProgram'], function (openray, GpuProgram) {
+define(['raycaster', 'glProgram'], function (openray, GLProgram) {
 	'use strict';
 	
 	//private
@@ -21,7 +21,7 @@ define(['raycaster', 'gpuProgram'], function (openray, GpuProgram) {
 	}
 
 	function _initShaders() {
-		var shaderProgram = new GpuProgram(_gl);
+		var shaderProgram = new GLProgram(_gl);
 
 		shaderProgram.loadVertexShader('./shaders/appShader.vert');
 		shaderProgram.loadFragmentShader('./shaders/appShader.frag');

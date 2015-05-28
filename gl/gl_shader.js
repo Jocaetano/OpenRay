@@ -1,7 +1,7 @@
 define(function () {
 	'use strict';
 	
-	function GpuShader(glContext, shaderType) {
+	function GLShader(glContext, shaderType) {
 		this._gl = glContext;
 		this._shader = this._gl.createShader(shaderType);
 		this._directives = [];
@@ -9,7 +9,7 @@ define(function () {
 		this._source = '';
 	}
 
-	GpuShader.prototype = {
+	GLShader.prototype = {
 
 		loadShaderFromURL: function (url) {
 			var self = this;
@@ -76,5 +76,5 @@ define(function () {
 		}
 	};
 	
-	return GpuShader;
+	return GLShader;
 });

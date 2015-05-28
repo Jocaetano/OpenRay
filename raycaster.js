@@ -1,10 +1,10 @@
-define(['gpuProgram', 'fbo', 'glTexture2d', 'color', 'transferFunciton', 'camera'],
-	function (GpuProgram, FrameBufferObject, GLTexture2D, Color, TransferFunction, Camera) {
+define(['glProgram', 'fbo', 'glTexture2d', 'color', 'transferFunciton', 'camera'],
+	function (GLProgram, FrameBufferObject, GLTexture2D, Color, TransferFunction, Camera) {
 		'use strict';
 	
 		//private	
 		function _initVolumeProgram() {
-			var volumeProgram = new GpuProgram(_gl);
+			var volumeProgram = new GLProgram(_gl);
 
 			volumeProgram.loadVertexShader('../shaders/shader.vert');
 			volumeProgram.loadFragmentShader('../shaders/shader.frag');
@@ -15,7 +15,7 @@ define(['gpuProgram', 'fbo', 'glTexture2d', 'color', 'transferFunciton', 'camera
 		}
 
 		function _initRaycastProgram() {
-			var raycastProgram = new GpuProgram(_gl);
+			var raycastProgram = new GLProgram(_gl);
 
 			if (_numSlices > 1)
 				raycastProgram.addDirectiveFragment("#define NUMBER_SLICES_" + _numSlices);
