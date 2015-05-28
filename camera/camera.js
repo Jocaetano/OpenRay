@@ -9,6 +9,8 @@ define(['glMatrix'], function (glm) {
 		this.pos;
 		this.mvMatrix = glm.mat4.create();
 		this.pMatrix = glm.mat4.create();
+		
+		this.reset = this.reset(this.zoom, this.translateX, this.translateY, this.objectRotationMatrix);
 	};
 
 	Camera.prototype = {
@@ -33,6 +35,20 @@ define(['glMatrix'], function (glm) {
 
 		changeZoom: function (delta) {
 			this.zoom = -delta < 0 ? this.zoom * 0.9 : this.zoom * 1.1;
+		},
+
+		reset: function (zoom, translateX, translateY, objectRotationMatrix) {
+			var zoomBak = zoom;
+			var translateXBak = translateX;
+			var translateYBak = translateY;
+			var objectRotationMatrixBak = glm.mat4.clone(objectRotationMatrix);
+
+			return function () {
+				this.zoom = zoomBak;
+				this.translateX = translateXBak;
+				this.translateY = translateYBak;
+				glm.mat4.copy(this.objectRotationMatrix, objectRotationMatrixBak);
+			};
 		},
 
 		transform: function () {

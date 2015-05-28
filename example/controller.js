@@ -106,12 +106,7 @@ Controller.prototype.updateCheckBox = function (phongCheckBox, alphaGradientChec
 };
 
 Controller.prototype.resetCamera = function () {
-	this.translateX = 0.0;
-	this.translateY = 0.0;
-	this.zoom = 10;
-	mat4.identity(this.objectRotationMatrix);
-	this.app.raycaster.moveCamera(this.translateX, this.translateY, this.zoom);
-	this.app.raycaster.rotateCamera(this.objectRotationMatrix);
+	this.camera.reset()
 
 	this.modified();
 };
