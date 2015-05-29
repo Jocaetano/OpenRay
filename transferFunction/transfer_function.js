@@ -62,12 +62,14 @@ define(function () {
 
 	TransferFunction.prototype = {
 
-		addObserver: function (observer) {
-			this._observers.push(observer);
+		addObserver: function (observerCallback) {
+			this._observers.push(observerCallback);
 		},
-
+		
 		notifyObservers: function () {
-			this._observers.forEach(function (element) { element.observedUpdate(); });
+			this._observers.forEach(function (observerCallback) {
+				observerCallback();
+			});	
 		},
 
 		createData: function () {
