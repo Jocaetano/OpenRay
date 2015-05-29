@@ -1,19 +1,37 @@
 define(['glMatrix'], function (glm) {
 
-	function Camera(zoom, translateX, translateY, objectRotationMatrix) {
-		this.zoom = zoom || 0.0;
-		this.translateX = translateX || 0.0;
-		this.translateY = translateY || 0.0;
-		this.objectRotationMatrix = objectRotationMatrix || glm.mat4.create();
+	function Camera(zoom, translateX, translateY, translateZ, objectRotationMatrix) {
+		zoom = zoom || 1.0;
+		translateX = translateX || 0.0;
+		translateY = translateY || 0.0;
+		translateZ = translateZ || 0.0;
+		objectRotationMatrix = objectRotationMatrix || glm.mat4.create();
 
-		this.pos;
+		this.pos = glm.vec3.fromValues(translateX, translateY, translateZ);
+
 		this.mvMatrix = glm.mat4.create();
+		glm.mat4.translate(this.mvMatrix, this.mvMatrix, [translateX, translateY, translateZ]);
+		glm.mat4.multiply(this.mvMatrix, this.mvMatrix, objectRotationMatrix);
+
 		this.pMatrix = glm.mat4.create();
+		glm.mat4.frustum(this.pMatrix, -10 * zoom, 10 * zoom, -10 * zoom, 10 * zoom, 200, 2500.0);
+
+		this.reset = this.reset(this.pos, this.mvMatrix, this.pMatrix);
 		
-		this.reset = this.reset(this.zoom, this.translateX, this.translateY, this.objectRotationMatrix);
+		this._observers = [];
 	};
 
 	Camera.prototype = {
+		
+		addObserver: function (observerCallback) {
+			this._observers.push(observerCallback);
+		},
+		
+		notifyObservers: function () {
+			this._observers.forEach(function (observerCallback) {
+				observerCallback();
+			});	
+		},
 
 		rotate: function (deltaX, deltaY) {
 			var xRotationMatrix = glm.mat4.create();
@@ -25,47 +43,53 @@ define(['glMatrix'], function (glm) {
 			var newRotationMatrix = glm.mat4.create();
 			glm.mat4.multiply(newRotationMatrix, xRotationMatrix, yRotationMatrix);
 
-			glm.mat4.multiply(this.objectRotationMatrix, newRotationMatrix, this.objectRotationMatrix);
+			glm.vec3.transformMat4(this.pos, this.pos, newRotationMatrix);
+			glm.vec3.normalize(this.pos, this.pos);
+
+			var translateX = this.mvMatrix[12];
+			var translateY = this.mvMatrix[13];
+			var translateZ = this.mvMatrix[14];
+			this.mvMatrix[12] -= translateX;
+			this.mvMatrix[13] -= translateY;
+			this.mvMatrix[14] -= translateZ;
+			glm.mat4.multiply(this.mvMatrix, newRotationMatrix, this.mvMatrix);
+			this.mvMatrix[12] += translateX;
+			this.mvMatrix[13] += translateY;
+			this.mvMatrix[14] += translateZ;
+			
+			this.notifyObservers();
 		},
 
 		translate: function (deltaX, deltaY) {
-			this.translateX += deltaX;
-			this.translateY -= deltaY;
+			glm.vec3.add(this.pos, this.pos, glm.vec3.fromValues(deltaX, -deltaY, 0.0));
+			glm.vec3.normalize(this.pos, this.pos);
+
+			this.mvMatrix[12] += deltaX;
+			this.mvMatrix[13] -= deltaY;
+			
+			this.notifyObservers();
 		},
 
 		changeZoom: function (delta) {
-			this.zoom = -delta < 0 ? this.zoom * 0.9 : this.zoom * 1.1;
+			var zoom = -delta < 0 ? 0.9 : 1.1;
+			this.pMatrix[0] *= zoom;
+			this.pMatrix[5] *= zoom;
+			
+			this.notifyObservers();
 		},
 
-		reset: function (zoom, translateX, translateY, objectRotationMatrix) {
-			var zoomBak = zoom;
-			var translateXBak = translateX;
-			var translateYBak = translateY;
-			var objectRotationMatrixBak = glm.mat4.clone(objectRotationMatrix);
+		reset: function (pos, mvMatrix, pMatrix) {
+			var posBak = glm.vec3.clone(pos);
+			var mvMatrixBak = glm.mat4.clone(mvMatrix);
+			var pMatrixBak = glm.mat4.clone(pMatrix);
 
 			return function () {
-				this.zoom = zoomBak;
-				this.translateX = translateXBak;
-				this.translateY = translateYBak;
-				glm.mat4.copy(this.objectRotationMatrix, objectRotationMatrixBak);
+				this.pos = posBak;
+				glm.mat4.copy(this.mvMatrix, mvMatrixBak);
+				glm.mat4.copy(this.pMatrix, pMatrixBak);
+				
+				this.notifyObservers();
 			};
-		},
-
-		transform: function () {
-			glm.mat4.identity(this.mvMatrix);
-			glm.mat4.translate(this.mvMatrix, this.mvMatrix, [this.translateX, this.translateY, -800.0]);
-			glm.mat4.multiply(this.mvMatrix, this.mvMatrix, this.objectRotationMatrix);
-		},
-
-		perspective: function () {
-			glm.mat4.frustum(this.pMatrix, -10 * this.zoom, 10 * this.zoom, -10 * this.zoom, 10 * this.zoom, 200, 2500.0);
-		},
-
-		updatePos: function () {
-			this.pos = glm.vec3.fromValues(0.0, 0.0, 1.0);
-			glm.vec3.add(this.pos, this.pos, glm.vec3.fromValues(this.translateX, this.translateY, -800.0));
-			glm.vec3.transformMat4(this.pos, this.pos, this.objectRotationMatrix);
-			glm.vec3.normalize(this.pos, this.pos);
 		}
 	};
 

@@ -112,6 +112,11 @@ define(['glProgram', 'fbo', 'glTexture2d', 'color', 'transferFunciton', 'camera'
 			_gl.uniform1f(_raycastProgram.uniforms.samplingStep, samplingStep);
 			_gl.uniform1f(_raycastProgram.uniforms.volumeSpacing, smallerSpacing);
 			_gl.uniform1f(_raycastProgram.uniforms.dicomSize, _volume._imageWidth);
+			_gl.uniform3f(_raycastProgram.uniforms.lightDirection, _light.position[0], _light.position[1], _light.position[2]);
+			_gl.uniform3f(_raycastProgram.uniforms.lightAmbientColor, _light.ambient.r, _light.ambient.g, _light.ambient.b);
+			_gl.uniform3f(_raycastProgram.uniforms.lightDiffuseColor, _light.diffuse.r, _light.diffuse.g, _light.diffuse.b);
+			_gl.uniform3f(_raycastProgram.uniforms.lightSpecularColor, _light.specular.r, _light.specular.g, _light.specular.b);
+			_gl.uniform1f(_raycastProgram.uniforms.lightShininess, 32.0);
 		}
 
 		function initVolumeBuffer() {
@@ -174,16 +179,6 @@ define(['glProgram', 'fbo', 'glTexture2d', 'color', 'transferFunciton', 'camera'
 			_endFBO.tex.bind(++i);
 			_transferFunctionTexture.bind(++i);
 
-			_camera.updatePos();
-
-			_raycastProgram.bind();
-			_gl.uniform3f(_raycastProgram.uniforms.viewVector, _camera.pos[0], _camera.pos[1], _camera.pos[2]);
-			_gl.uniform3f(_raycastProgram.uniforms.lightDirection, _light.position[0], _light.position[1], _light.position[2]);
-			_gl.uniform3f(_raycastProgram.uniforms.lightAmbientColor, _light.ambient.r, _light.ambient.g, _light.ambient.b);
-			_gl.uniform3f(_raycastProgram.uniforms.lightDiffuseColor, _light.diffuse.r, _light.diffuse.g, _light.diffuse.b);
-			_gl.uniform3f(_raycastProgram.uniforms.lightSpecularColor, _light.specular.r, _light.specular.g, _light.specular.b);
-			_gl.uniform1f(_raycastProgram.uniforms.lightShininess, 32.0);
-
 			_drawVolumeBuffer(_raycastProgram);
 
 			_resultFBO.unbind();
@@ -191,15 +186,13 @@ define(['glProgram', 'fbo', 'glTexture2d', 'color', 'transferFunciton', 'camera'
 
 		function _drawVolumeBuffer(program) {
 			_gl.viewport(0, 0, _width, _height);
-			_camera.perspective();
 
 			program.bind();
 			_gl.bindBuffer(_gl.ARRAY_BUFFER, _cubeVertexColorBuffer);
 			program.vertexAttribPointer("aVertexColor", 4, _gl.FLOAT);
 			_gl.bindBuffer(_gl.ARRAY_BUFFER, _cubeVertexPositionBuffer);
 			program.vertexAttribPointer("aVertexPosition", 3, _gl.FLOAT);
-			_gl.uniformMatrix4fv(program.uniforms.uPMatrix, false, _camera.pMatrix);
-			_gl.uniformMatrix4fv(program.uniforms.uMVMatrix, false, _camera.mvMatrix);
+			
 			_gl.drawElements(_gl.TRIANGLES, 36, _gl.UNSIGNED_SHORT, 0);
 
 			_gl.viewport(0, 0, _widthView, _heightView);
@@ -227,12 +220,22 @@ define(['glProgram', 'fbo', 'glTexture2d', 'color', 'transferFunciton', 'camera'
 			_transfer.createData();
 		}
 
-		function _updateTransferFunctionTexture() {
+		function _updateTransferFunction() {
 			_transferFunctionTexture.bind();
 			_transferFunctionTexture.updatePixels(_transfer.data, _gl.RGBA);
 			_raycastProgram.bind();
 			_gl.uniform1f(_raycastProgram.uniforms.transferMinValue, _transfer.getRangeMin());
 			_gl.uniform1f(_raycastProgram.uniforms.transferRangeValue, _transfer.getRangeMax() - _transfer.getRangeMin());
+		}
+
+		function _updateCamera() {
+			_raycastProgram.bind();
+			_gl.uniform3f(_raycastProgram.uniforms.viewVector, _camera.pos[0], _camera.pos[1], _camera.pos[2]);
+			_gl.uniformMatrix4fv(_raycastProgram.uniforms.uPMatrix, false, _camera.pMatrix);
+			_gl.uniformMatrix4fv(_raycastProgram.uniforms.uMVMatrix, false, _camera.mvMatrix);
+			_volumeProgram.bind();
+			_gl.uniformMatrix4fv(_volumeProgram.uniforms.uPMatrix, false, _camera.pMatrix);
+			_gl.uniformMatrix4fv(_volumeProgram.uniforms.uMVMatrix, false, _camera.mvMatrix);
 		}
 
 		var _gl;
@@ -257,7 +260,8 @@ define(['glProgram', 'fbo', 'glTexture2d', 'color', 'transferFunciton', 'camera'
 		var _cubeVertexPositionBuffer;
 		var _cubeVertexColorBuffer;
 
-		var _camera = new Camera(10);
+		var _camera = new Camera(10, 0, 0, -800);
+		_camera.addObserver(_updateCamera);
 
 		var _light = {
 			position: [0.0, -1.0, 0.0],
@@ -341,21 +345,20 @@ define(['glProgram', 'fbo', 'glTexture2d', 'color', 'transferFunciton', 'camera'
 					_transfer.setRange(_volume._minDensity, _volume._maxDensity);
 				else {
 					_transfer = new TransferFunction(_volume._minDensity, _volume._maxDensity);
-					_transfer.addObserver(this);
+					_transfer.addObserver(_updateTransferFunction);
 					_setDefaultTransferColors();
 				}
 
-				_updateTransferFunctionTexture();
+				_updateTransferFunction();
+				_updateCamera();
 			},
 
 			draw: function () {
 				_gl.clearColor(0.0, 0.0, 0.0, 0.0);
 
-				_camera.transform();
-
 				_calculateRayEnd();
 				_castRays();
-				
+
 				_gl.disable(_gl.CULL_FACE);
 			},
 
@@ -391,18 +394,18 @@ define(['glProgram', 'fbo', 'glTexture2d', 'color', 'transferFunciton', 'camera'
 					transfer.push(position, color);
 				}
 
-				transfer.addObserver(this);
+				transfer.addObserver(_updateTransferFunction);
 				_transfer = transfer;
 
-				_updateTransferFunctionTexture();
+				_updateTransferFunction();
 			},
 
 			setTransfer: function (transfer) {
 				transfer.setRange(_volume._minDensity, _volume._maxDensity);
-				transfer.addObserver(this);
+				transfer.addObserver(_updateTransferFunction);
 				_transfer = transfer;
 
-				_updateTransferFunctionTexture();
+				_updateTransferFunction();
 			},
 
 			restartProgram: function (usePhongShading, useAlphaGradient) {
@@ -414,10 +417,12 @@ define(['glProgram', 'fbo', 'glTexture2d', 'color', 'transferFunciton', 'camera'
 
 			changeLightDirection: function (index, value) {
 				_light.position[index] = value;
+				_raycastProgram.bind();
+				_gl.uniform3f(_raycastProgram.uniforms.lightDirection, _light.position[0], _light.position[1], _light.position[2]);
 			},
 
 			observedUpdate: function () {
-				_updateTransferFunctionTexture();
+				_updateTransferFunction();
 			},
 
 			get_resultTexture: function () {
