@@ -13,8 +13,10 @@ define(['raycaster', 'glProgram'], function (openray, GLProgram) {
 
 	function _initBuffers() {
 		var Vertices = [
-			0.0, 0.0, 1.0, 0.0,
-			0.0, 1.0, 1.0, 1.0,
+			0.0, 0.0,
+			1.0, 0.0,
+			0.0, 1.0,
+			1.0, 1.0,
 		];
 
 		_program.addArrayBuffer(new Float32Array(Vertices), 2, _gl.FLOAT, "aVertexPosition");
@@ -27,15 +29,15 @@ define(['raycaster', 'glProgram'], function (openray, GLProgram) {
 		shaderProgram.loadFragmentShader('./shaders/appShader.frag');
 		shaderProgram.attachShaders();
 		shaderProgram.linkProgram();
+		shaderProgram.bind();
+		mat4.ortho(_pMatrix, 0.0, 1.0, 0.0, 1.0, -1.0, 1.0);
+		_gl.uniformMatrix4fv(shaderProgram.uniforms.uPMatrix, false, _pMatrix);
 
 		return shaderProgram;
 	}
 
 	function _drawScene() {
-		mat4.ortho(_pMatrix, 0.0, 1.0, 0.0, 1.0, -1.0, 1.0);
-
 		_program.bind();
-		_gl.uniformMatrix4fv(_program.uniforms.uPMatrix, false, _pMatrix);
 		_program.drawArrays(_gl.TRIANGLE_STRIP, 0, 4);
 	}
 	
