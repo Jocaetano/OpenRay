@@ -115,7 +115,7 @@ define(['glProgram', 'fbo', 'glTexture2d', 'color', 'transferFunciton', 'camera'
 			_gl.uniform1f(_raycastProgram.uniforms.lightShininess, 32.0);
 		}
 
-		function initVolumeBuffer() {
+		function _initVolumeBuffer() {
 
 			var box = _volume.boundingBox();
 			box.translate(box.center());
@@ -183,12 +183,12 @@ define(['glProgram', 'fbo', 'glTexture2d', 'color', 'transferFunciton', 'camera'
 		}
 
 		function _drawVolumeBuffer(program) {
-//			_gl.viewport(0, 0, _width, _height);
+			//			_gl.viewport(0, 0, _width, _height);
 
 			program.bind();
 			_gl.drawElements(_gl.TRIANGLES, 36, _gl.UNSIGNED_SHORT, 0);
 
-//			_gl.viewport(0, 0, _widthView, _heightView);
+			//			_gl.viewport(0, 0, _widthView, _heightView);
 		}
 
 		function _calculateRayEnd() {
@@ -273,7 +273,7 @@ define(['glProgram', 'fbo', 'glTexture2d', 'color', 'transferFunciton', 'camera'
 				_gl = glContext;
 				_width = width; _height = height;
 				_widthView = width; _heightView = height;
-				
+
 				_gl.viewport(0, 0, _width, _height);
 
 				_cubeVertexPositionBuffer = _gl.createBuffer();
@@ -329,7 +329,7 @@ define(['glProgram', 'fbo', 'glTexture2d', 'color', 'transferFunciton', 'camera'
 				_raycastProgram = _initRaycastProgram();
 				_setRaycastProgramVolume();
 
-				initVolumeBuffer();
+				_initVolumeBuffer();
 
 				if (_transfer)
 					_transfer.setRange(_volume._minDensity, _volume._maxDensity);
@@ -354,7 +354,7 @@ define(['glProgram', 'fbo', 'glTexture2d', 'color', 'transferFunciton', 'camera'
 
 			changeRes: function (width, height) {
 				_width = width; _height = height;
-				
+
 				_gl.viewport(0, 0, _width, _height);
 
 				_endFBO.changeRenderBufferSize(_width, _width, _gl.DEPTH_ATTACHMENT);
@@ -394,7 +394,20 @@ define(['glProgram', 'fbo', 'glTexture2d', 'color', 'transferFunciton', 'camera'
 				_usePhongShading = usePhongShading;
 				_useAlphaGradient = useAlphaGradient;
 
-				this.setVolume(_volume);
+				_raycastProgram = _initRaycastProgram();
+				_setRaycastProgramVolume();
+
+				_raycastProgram.bind();
+				_gl.bindBuffer(_gl.ARRAY_BUFFER, _cubeVertexColorBuffer);
+				_raycastProgram.vertexAttribPointer("aVertexColor", 4, _gl.FLOAT);
+				_gl.bindBuffer(_gl.ARRAY_BUFFER, _cubeVertexPositionBuffer);
+				_raycastProgram.vertexAttribPointer("aVertexPosition", 3, _gl.FLOAT);
+				
+				_gl.uniform1f(_raycastProgram.uniforms.transferMinValue, _transfer.getRangeMin());
+				_gl.uniform1f(_raycastProgram.uniforms.transferRangeValue, _transfer.getRangeMax() - _transfer.getRangeMin());
+				_gl.uniform3f(_raycastProgram.uniforms.viewVector, _camera.pos[0], _camera.pos[1], _camera.pos[2]);
+				_gl.uniformMatrix4fv(_raycastProgram.uniforms.uPMatrix, false, _camera.pMatrix);
+				_gl.uniformMatrix4fv(_raycastProgram.uniforms.uMVMatrix, false, _camera.mvMatrix);
 			},
 
 			changeLightDirection: function (index, value) {
