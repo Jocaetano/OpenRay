@@ -34,9 +34,6 @@ define(['glProgram', 'fbo', 'glTexture2d', 'color', 'transferFunciton', 'camera'
 			raycastProgram.attachShaders();
 			raycastProgram.linkProgram();
 
-			raycastProgram.bind();
-			_gl.uniform2f(raycastProgram.uniforms.textureSize, _width, _height);
-
 			return raycastProgram;
 		}
 
@@ -96,15 +93,14 @@ define(['glProgram', 'fbo', 'glTexture2d', 'color', 'transferFunciton', 'camera'
 			console.log("Número de slices : " + _slicesLength.length);
 
 			_raycastProgram.bind();
-			_raycastProgram.uVolumeTexture = [];
-			_raycastProgram.numberOfSlicesT = [];
-			_gl.uniform1i(_raycastProgram.uniforms["volumeTexture" + (1)], 1);
 
+			_gl.uniform1i(_raycastProgram.uniforms["volumeTexture" + (1)], 1);
 			var i = 1;
 			for (; i < _numSlices; i++) {
 				_gl.uniform1i(_raycastProgram.uniforms["volumeTexture" + (i + 1)], i + 1);
 			}
 
+			_gl.uniform2f(_raycastProgram.uniforms.textureSize, _width, _height);
 			_gl.uniform1i(_raycastProgram.uniforms.raysEndTexture, ++i);
 			_gl.uniform1i(_raycastProgram.uniforms.transferFunctionTexture, ++i);
 			_gl.uniform3f(_raycastProgram.uniforms.volumeSize, box.width(), box.depth(), box.height());
@@ -162,16 +158,20 @@ define(['glProgram', 'fbo', 'glTexture2d', 'color', 'transferFunciton', 'camera'
 
 			_gl.bindBuffer(_gl.ELEMENT_ARRAY_BUFFER, _gl.createBuffer());
 			_gl.bufferData(_gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(cubeVertexIndices), _gl.STATIC_DRAW);
+
+			[_raycastProgram, _volumeProgram].forEach(function (program) {
+				program.bind();
+				_gl.bindBuffer(_gl.ARRAY_BUFFER, _cubeVertexColorBuffer);
+				program.vertexAttribPointer("aVertexColor", 4, _gl.FLOAT);
+				_gl.bindBuffer(_gl.ARRAY_BUFFER, _cubeVertexPositionBuffer);
+				program.vertexAttribPointer("aVertexPosition", 3, _gl.FLOAT);
+			});
 		}
 
 		function _castRays() {
-			_resultFBO.bind();
-			_resultFBO.attachColor(_resultFBO.tex, 0);
-
 			_gl.clear(_gl.COLOR_BUFFER_BIT);
 			_gl.cullFace(_gl.FRONT);
 
-			_resultFBO.tex.bind(0);
 			var i = 0;
 			for (; i < _numSlices; i++) {
 				_volumeTexture[i].bind(i + 1);
@@ -180,22 +180,15 @@ define(['glProgram', 'fbo', 'glTexture2d', 'color', 'transferFunciton', 'camera'
 			_transferFunctionTexture.bind(++i);
 
 			_drawVolumeBuffer(_raycastProgram);
-
-			_resultFBO.unbind();
 		}
 
 		function _drawVolumeBuffer(program) {
-			_gl.viewport(0, 0, _width, _height);
+//			_gl.viewport(0, 0, _width, _height);
 
 			program.bind();
-			_gl.bindBuffer(_gl.ARRAY_BUFFER, _cubeVertexColorBuffer);
-			program.vertexAttribPointer("aVertexColor", 4, _gl.FLOAT);
-			_gl.bindBuffer(_gl.ARRAY_BUFFER, _cubeVertexPositionBuffer);
-			program.vertexAttribPointer("aVertexPosition", 3, _gl.FLOAT);
-			
 			_gl.drawElements(_gl.TRIANGLES, 36, _gl.UNSIGNED_SHORT, 0);
 
-			_gl.viewport(0, 0, _widthView, _heightView);
+//			_gl.viewport(0, 0, _widthView, _heightView);
 		}
 
 		function _calculateRayEnd() {
@@ -246,7 +239,6 @@ define(['glProgram', 'fbo', 'glTexture2d', 'color', 'transferFunciton', 'camera'
 		var _numSlices = 0;
 		var _volumeTexture = [];
 
-		var _resultFBO;
 		var _resultTexture;
 
 		var _endFBO;
@@ -281,10 +273,8 @@ define(['glProgram', 'fbo', 'glTexture2d', 'color', 'transferFunciton', 'camera'
 				_gl = glContext;
 				_width = width; _height = height;
 				_widthView = width; _heightView = height;
-
-				_resultFBO = new FrameBufferObject(_gl);
-				_resultFBO.tex = new GLTexture2D(_gl, _width, _height, _gl.RGBA);
-				_resultTexture = _resultFBO.tex;
+				
+				_gl.viewport(0, 0, _width, _height);
 
 				_cubeVertexPositionBuffer = _gl.createBuffer();
 				_cubeVertexColorBuffer = _gl.createBuffer();
@@ -333,13 +323,13 @@ define(['glProgram', 'fbo', 'glTexture2d', 'color', 'transferFunciton', 'camera'
 				else
 					_transferFunctionTexture = new GLTexture2D(_gl, _transferFunctionSize, 1, _gl.RGBA);
 
-				initVolumeBuffer();
-
 				if (_raycastProgram)
 					_gl.deleteProgram(_raycastProgram.getProgram());
 
 				_raycastProgram = _initRaycastProgram();
 				_setRaycastProgramVolume();
+
+				initVolumeBuffer();
 
 				if (_transfer)
 					_transfer.setRange(_volume._minDensity, _volume._maxDensity);
@@ -364,22 +354,14 @@ define(['glProgram', 'fbo', 'glTexture2d', 'color', 'transferFunciton', 'camera'
 
 			changeRes: function (width, height) {
 				_width = width; _height = height;
-
-				_resultFBO.tex.changeSize(width, height);
+				
+				_gl.viewport(0, 0, _width, _height);
 
 				_endFBO.changeRenderBufferSize(_width, _width, _gl.DEPTH_ATTACHMENT);
 				_endFBO.tex.changeSize(width, height);
 
 				_raycastProgram.bind();
 				_gl.uniform2f(_raycastProgram.uniforms.textureSize, _width, _height);
-			},
-
-			changeResultTexture: function () {
-				if (_resultTexture == _resultFBO.tex) {
-					_resultTexture = _endFBO.tex;
-					return;
-				}
-				_resultTexture = _resultFBO.tex;
 			},
 
 			loadTransferBuffer: function (transferBuffer) {
