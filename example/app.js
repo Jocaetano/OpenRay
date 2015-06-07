@@ -8,7 +8,7 @@ define(['raycaster'], function (openray) {
 	var _width = 0;
 	var _height = 0;
 	var _running = false;
-
+	
 	//public	
     return {
 		start: function (glContext, width, height) {
@@ -33,7 +33,7 @@ define(['raycaster'], function (openray) {
 			else
 				this.raycaster.setVolume(_volume);
 		},
-		
+
 		tick: function () {
 			window.requestAnimationFrame(this.tick);
 			if (this.modified) {
@@ -43,6 +43,3 @@ define(['raycaster'], function (openray) {
 		}
     };
 });
-
-
-

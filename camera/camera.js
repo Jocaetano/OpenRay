@@ -17,20 +17,20 @@ define(['glMatrix'], function (glm) {
 		glm.mat4.frustum(this.pMatrix, -10 * zoom, 10 * zoom, -10 * zoom, 10 * zoom, 200, 2500.0);
 
 		this.reset = this.reset(this.pos, this.mvMatrix, this.pMatrix);
-		
+
 		this._observers = [];
 	};
 
 	Camera.prototype = {
-		
+
 		addObserver: function (observerCallback) {
 			this._observers.push(observerCallback);
 		},
-		
+
 		notifyObservers: function () {
 			this._observers.forEach(function (observerCallback) {
 				observerCallback();
-			});	
+			});
 		},
 
 		rotate: function (deltaX, deltaY) {
@@ -56,7 +56,7 @@ define(['glMatrix'], function (glm) {
 			this.mvMatrix[12] += translateX;
 			this.mvMatrix[13] += translateY;
 			this.mvMatrix[14] += translateZ;
-			
+
 			this.notifyObservers();
 		},
 
@@ -66,7 +66,7 @@ define(['glMatrix'], function (glm) {
 
 			this.mvMatrix[12] += deltaX;
 			this.mvMatrix[13] -= deltaY;
-			
+
 			this.notifyObservers();
 		},
 
@@ -74,7 +74,7 @@ define(['glMatrix'], function (glm) {
 			var zoom = -delta < 0 ? 0.9 : 1.1;
 			this.pMatrix[0] *= zoom;
 			this.pMatrix[5] *= zoom;
-			
+
 			this.notifyObservers();
 		},
 
@@ -87,7 +87,7 @@ define(['glMatrix'], function (glm) {
 				this.pos = posBak;
 				glm.mat4.copy(this.mvMatrix, mvMatrixBak);
 				glm.mat4.copy(this.pMatrix, pMatrixBak);
-				
+
 				this.notifyObservers();
 			};
 		}
