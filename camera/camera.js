@@ -1,4 +1,5 @@
 define(['glMatrix'], function (glm) {
+	'use strict';
 
 	function Camera(zoom, translateX, translateY, translateZ, objectRotationMatrix) {
 		zoom = zoom || 1.0;

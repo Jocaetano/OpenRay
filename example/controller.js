@@ -1,205 +1,117 @@
 /// <reference path="../typings/jquery/jquery.d.ts"/>
-/* global app */
 
-function Controller(app) {
-	this.app = app;
+define(['volume_factory', 'gradientEditor', 'app'], function (VolumeFactory, GradientEditor, app) {
+	'use strict';
+	
+	//private
+	var _lastMouseX = 0.0;
+	var _lastMouseY = 0.0;
+	var _mouseButton;
 
-	this.translateX = 0.0;
-	this.translateY = 0.0;
-	this.zoom = 10;
-	this.objectRotationMatrix = mat4.create();
-	this.mouseButton = 0;
+	var _camera;
+	var _gradientEditor;
 
-	this.lastMouseX = 0.0;
-	this.lastMouseY = 0.0;
-
-	$("a").click(function () {
-		$(".tabbed_content").show();
-	});
-
-	$(".tabbed_content").mouseleave(function () {
-		$(".tabbed_content").fadeOut('slow');
-	});
-
-	$("#resetCamButton").click(this.resetCamera.bind(this));
-
-	this.modified = this.modified.bind(this);
-
-	var canvas = $("#raywebgl");
-	canvas.mousewheel(this.mouseWheelHandler.bind(this));
-	canvas.mousedown(this.mouseDownHandler.bind(this));
-	$(document).mouseup(this.mouseUpHandler.bind(this));
-
-	$("#dicomFiles").change(this.loadDicom.bind(this));
-	$("#rawFile").change(this.loadRAW.bind(this));
-
-	$("img#close").click(this.hideRawFileForm);
-
-	var slider = document.getElementById('lightX');
-	slider.addEventListener('input', this.updateSlider.bind(this, 0, slider), false);
-
-	slider = document.getElementById('lightY');
-	slider.addEventListener('input', this.updateSlider.bind(this, 1, slider), false);
-
-	slider = document.getElementById('lightZ');
-	slider.addEventListener('input', this.updateSlider.bind(this, 2, slider), false);
-
-	$(document).keyup(function (event) {
-		switch (event.keyCode) {
-			case 81: // Q
-				this.app.raycaster.changeRes(512, 512);
-				break;
-			case 87: // W
-				this.app.raycaster.changeRes(1024, 1024);
-				break;
-			case 69: // E
-				this.app.raycaster.changeRes(2048, 2048);
-				break;
-			case 82: // R
-				this.app.raycaster.changeRes(4096, 4096);
-				break;
-			case 48: // 0
-				this.resetCamera();
-				break;
-			case 65: // A
-				$("#dicomFiles").click();
-				break;
-			case 90: // Z
-				this.showRawFileForm();
-				break;
-			case 84: // T
-				$("#loadButton").click();
-				break;
-			case 49: // 1
-				this.app.raycaster.changeResultTexture();
-				break;
-		}
-		this.modified();
-	}.bind(this));
-
-	$("#dicomButton").click(function () {
-		$("#dicomFiles").click(); this.modified();
-	}.bind(this));
-
-	$("#rawButton").click(this.showRawFileForm);
-	$('#submitRaw').click(function () {
-		$("#rawFile").click(); this.modified();
-	}.bind(this));
-
-	$("#saveButton").click(this.saveTransfer.bind(this));
-	$("#loadButton").change(this.loadTransfer.bind(this));
-
-	var phongCheckBox = document.getElementById('usePhong');
-	var alphaGradientCheckBox = document.getElementById('useAlphaGradient');
-	this.updateCheckBox = this.updateCheckBox.bind(this, phongCheckBox, alphaGradientCheckBox);
-	phongCheckBox.addEventListener('change', this.updateCheckBox, false);
-	alphaGradientCheckBox.addEventListener('change', this.updateCheckBox, false);
-}
-
-Controller.prototype.modified = function () {
-	this.app.modified = true;
-};
-
-Controller.prototype.updateCheckBox = function (phongCheckBox, alphaGradientCheckBox) {
-	this.app.raycaster.restartProgram(phongCheckBox.checked, alphaGradientCheckBox.checked);
-	this.modified();
-};
-
-Controller.prototype.resetCamera = function () {
-	this.camera.reset()
-
-	this.modified();
-};
-
-Controller.prototype.updateSlider = function (index, slider) {
-	this.app.raycaster.changeLightDirection(index, slider.value);
-	this.modified();
-};
-
-Controller.prototype.saveTransfer = function (event) {
-	window.requestFileSystem = window.requestFileSystem || window.webkitRequestFileSystem;
-
-	window.requestFileSystem(window.TEMPORARY, 1024 * 1024, function (fs) {
-		fs.root.getFile('transfer.trf', { create: true }, function (fileEntry) {
-			fileEntry.createWriter(function (fileWriter) {
-				var blob = new Blob([this.app.raycaster.get_transfer().serialize()]);
-
-				fileWriter.addEventListener("writeend", function () {
-					// navigate to file, will download
-					location.href = fileEntry.toURL();
-				}, false);
-
-				fileWriter.write(blob);
-			}, function () { });
-		}, function () { });
-	}, function () { });
-};
-
-Controller.prototype.loadTransfer = function (event) {
-	var files = event.target.files;
-	if (!files.length) {
-		alert('Please select a file!');
-		return;
-	}
-
-	var file = files[0];
-	var reader = new FileReader();
-	reader.onloadend = function (evt) {
-		if (evt.target.readyState == FileReader.DONE) {
-			var uint8Array = new Uint8Array(evt.target.result);
-			this.app.raycaster.loadTransferBuffer(uint8Array);
-			this.gradientEditor.setTransfer(this.app.raycaster.get_transfer());
-		}
+	function _modified() {
+		app.modified = true;
 	};
 
-	var blob = file.slice(0, file.size);
-	reader.readAsArrayBuffer(blob);
-};
+	function _updateCheckBox(phongCheckBox, alphaGradientCheckBox) {
+		app.raycaster.restartProgram(phongCheckBox.checked, alphaGradientCheckBox.checked);
+		_modified();
+	};
 
-Controller.prototype.mouseUpHandler = function (event) {
-	$(document).off("mousemove");
-};
+	function _resetCamera() {
+		_camera.reset();
+		_modified();
+	};
 
-Controller.prototype.mouseDownHandler = function (event) {
-	this.canvasMouseDown = true;
-	this.lastMouseX = event.clientX;
-	this.lastMouseY = event.clientY;
-	this.mouseButton = event.button;
-	$(document).mousemove(this.handleMouseMove.bind(this));
-};
+	function _updateSlider(index, slider) {
+		app.raycaster.changeLightDirection(index, slider.value);
+		_modified();
+	};
 
-Controller.prototype.handleMouseMove = function (event) {
-	var newX = event.clientX;
-	var newY = event.clientY;
-	var deltaX = newX - this.lastMouseX;
-	var deltaY = newY - this.lastMouseY;
-	if (this.mouseButton == 2)
-		this.camera.rotate(deltaX, deltaY);
-	else if (this.mouseButton == 1)
-		this.camera.translate(deltaX, deltaY);
-	this.lastMouseX = newX;
-	this.lastMouseY = newY;
-	this.modified();
+	function _saveTransfer(event) {
+		window.requestFileSystem = window.requestFileSystem || window.webkitRequestFileSystem;
 
-	return;
-};
+		window.requestFileSystem(window.TEMPORARY, 1024 * 1024, function (fs) {
+			fs.root.getFile('transfer.trf', { create: true }, function (fileEntry) {
+				fileEntry.createWriter(function (fileWriter) {
+					var blob = new Blob([app.raycaster.get_transfer().serialize()]);
 
-Controller.prototype.mouseWheelHandler = function (event) {
-	var evt = window.event || event;//equalize event object
-	var delta = evt.detail ? evt.detail * (-1) : evt.wheelDelta;
+					fileWriter.addEventListener("writeend", function () {
+						// navigate to file, will download
+						location.href = fileEntry.toURL();
+					}, false);
 
-	this.camera.changeZoom(delta);
+					fileWriter.write(blob);
+				}, function () { });
+			}, function () { });
+		}, function () { });
+	};
 
-	this.modified();
+	function _loadTransfer(event) {
+		var files = event.target.files;
+		if (!files.length) {
+			alert('Please select a file!');
+			return;
+		}
 
-	if (evt.preventDefault) //disable default wheel action of scrolling page
-		evt.preventDefault();
-	else
-		return false;
-};
+		var file = files[0];
+		var reader = new FileReader();
+		reader.onloadend = function (evt) {
+			if (evt.target.readyState == FileReader.DONE) {
+				var uint8Array = new Uint8Array(evt.target.result);
+				app.raycaster.loadTransferBuffer(uint8Array);
+				_gradientEditor.setTransfer(app.raycaster.get_transfer());
+			}
+		};
 
-Controller.prototype.loadDicom = function (event) {
-	require(['volume_factory'], function (VolumeFactory) {
+		var blob = file.slice(0, file.size);
+		reader.readAsArrayBuffer(blob);
+	};
+
+	function _mouseUpHandler(event) {
+		$(document).off("mousemove");
+	};
+
+	function _mouseDownHandler(event) {
+		_lastMouseX = event.clientX;
+		_lastMouseY = event.clientY;
+		_mouseButton = event.button;
+		$(document).mousemove(_handleMouseMove);
+	};
+
+	function _handleMouseMove(event) {
+		var newX = event.clientX;
+		var newY = event.clientY;
+		var deltaX = newX - _lastMouseX;
+		var deltaY = newY - _lastMouseY;
+		if (_mouseButton == 2)
+			_camera.rotate(deltaX, deltaY);
+		else if (_mouseButton == 1)
+			_camera.translate(deltaX, deltaY);
+		_lastMouseX = newX;
+		_lastMouseY = newY;
+		_modified();
+
+		return;
+	};
+
+	function _mouseWheelHandler(event) {
+		var evt = window.event || event;//equalize event object
+		var delta = evt.detail ? evt.detail * (-1) : evt.wheelDelta;
+
+		_camera.changeZoom(delta);
+
+		_modified();
+
+		if (evt.preventDefault) //disable default wheel action of scrolling page
+			evt.preventDefault();
+		else
+			return false;
+	};
+
+	function _loadDicom(event) {
 		if (event.target.files.length < 2) {
 			console.log('Need 2 or more images');
 			return;
@@ -211,64 +123,149 @@ Controller.prototype.loadDicom = function (event) {
 		var onloadF = function (evt) {
 			imageFiles.push(evt.target.result);
 			if (totalSize <= imageFiles.length) {
-				VolumeFactory.createDicomVolume(imageFiles, this.setVolume.bind(this));
+				VolumeFactory.createDicomVolume(imageFiles, _setVolume);
 			}
 		};
 
 		for (var i = 0, ii = event.target.files.length; i < ii; i++) {
 			var reader = new FileReader();
-			reader.onload = onloadF.bind(this);
+			reader.onload = onloadF;
 			reader.readAsArrayBuffer(event.target.files[i]);
 		}
 
+		_modified();
+	};
 
-		this.modified();
-	}.bind(this));
-};
-
-Controller.prototype.loadRAW = function (event) {
-	require(['volume_factory'], function (VolumeFactory) {
+	function _loadRAW(event) {
 		var pixelSpacing = { x: parseFloat($("#psX").val()), y: parseFloat($("#psY").val()), z: parseFloat($("#psZ").val()) };
 		var volumeSize = { width: +$("#width").val(), height: +$("#height").val(), nslices: +$("#nslices").val() };
 		var bits = +$('input[name=bits]:checked', '#rawFileForm').val();
 
 		var reader = new FileReader();
 		reader.onload = function (evt) {
-			this.setVolume(VolumeFactory.createVolumefromRaw(evt.target.result, bits, volumeSize, pixelSpacing));
-		}.bind(this);
+			_setVolume(VolumeFactory.createVolumefromRaw(evt.target.result, bits, volumeSize, pixelSpacing));
+		};
 		reader.readAsArrayBuffer(event.target.files[0]);
 
-		this.hideRawFileForm();
-		this.modified();
-	}.bind(this));
-};
+		_hideRawFileForm();
+		_modified();
+	};
 
-Controller.prototype.setVolume = function (volume) {
-	this.app.setVolume(volume);
-	if (this.gradientEditor)
-		this.updateTransferGradient(this.app.raycaster.get_transfer());
-	else
-		this.createGradient(this.app.raycaster.get_transfer());
-	if (!this.camera)
-		this.camera = this.app.raycaster.get_camera();
-};
+	function _setVolume(volume) {
+		app.setVolume(volume);
+		if (_gradientEditor)
+			_updateTransferGradient(app.raycaster.get_transfer());
+		else
+			_createGradient(app.raycaster.get_transfer());
+		if (!_camera)
+			_camera = app.raycaster.get_camera();
+	};
 
-//Show rawFile popup
-Controller.prototype.showRawFileForm = function () {
-	$("#rawFileForm").css("display", "block");
-};
+	function _showRawFileForm() {
+		$("#rawFileForm").css("display", "block");
+	};
 
-//Hide rawFile popup
-Controller.prototype.hideRawFileForm = function () {
-	$("#rawFileForm").css("display", "none");
-};
+	function _hideRawFileForm() {
+		$("#rawFileForm").css("display", "none");
+	};
 
-Controller.prototype.createGradient = function (transfer) {
-	this.gradientEditor = new GradientEditor(transfer, this.modified);
-	this.modified();
-};
+	function _createGradient(transfer) {
+		_gradientEditor = new GradientEditor(transfer, _modified);
+		_modified();
+	};
 
-Controller.prototype.updateTransferGradient = function (transfer) {
-	this.gradientEditor.update();
-	this.modified();
-};
+	function _updateTransferGradient(transfer) {
+		_gradientEditor.update();
+		_modified();
+	};
+
+	return {
+		init: function () {
+			$("a").click(function () {
+				$(".tabbed_content").show();
+			});
+
+			$(".tabbed_content").mouseleave(function () {
+				$(".tabbed_content").stop(true, true).fadeOut('slow');
+			});
+
+			$(".tabbed_content").mouseenter(function () {
+				$(".tabbed_content").stop(true, true).fadeIn(100);
+			});
+
+			$("#resetCamButton").click(_resetCamera);
+
+			var canvas = $("#raywebgl");
+			canvas.mousewheel(_mouseWheelHandler);
+			canvas.mousedown(_mouseDownHandler);
+			$(document).mouseup(_mouseUpHandler);
+
+			$("#dicomFiles").change(_loadDicom);
+			$("#rawFile").change(_loadRAW);
+
+			$("img#close").click(_hideRawFileForm);
+
+			var slider = document.getElementById('lightX');
+			slider.addEventListener('input', _updateSlider.bind(this, 0, slider), false);
+
+			slider = document.getElementById('lightY');
+			slider.addEventListener('input', _updateSlider.bind(this, 1, slider), false);
+
+			slider = document.getElementById('lightZ');
+			slider.addEventListener('input', _updateSlider.bind(this, 2, slider), false);
+
+			$(document).keyup(function (event) {
+				switch (event.keyCode) {
+					case 81: // Q
+						app.raycaster.changeRes(512, 512);
+						break;
+					case 87: // W
+						app.raycaster.changeRes(1024, 1024);
+						break;
+					case 69: // E
+						app.raycaster.changeRes(2048, 2048);
+						break;
+					case 82: // R
+						app.raycaster.changeRes(4096, 4096);
+						break;
+					case 48: // 0
+						_resetCamera();
+						break;
+					case 65: // A
+						$("#dicomFiles").click();
+						break;
+					case 90: // Z
+						_showRawFileForm();
+						break;
+					case 84: // T
+						$("#loadButton").click();
+						break;
+					case 49: // 1
+						app.raycaster.changeResultTexture();
+						break;
+				}
+				_modified();
+			});
+
+			$("#dicomButton").click(function () {
+				$("#dicomFiles").click(); _modified();
+			});
+
+			$("#rawButton").click(_showRawFileForm);
+			$('#submitRaw').click(function () {
+				$("#rawFile").click(); _modified();
+			});
+
+			$("#saveButton").click(_saveTransfer);
+			$("#loadButton").change(_loadTransfer);
+
+			var phongCheckBox = document.getElementById('usePhong');
+			var alphaGradientCheckBox = document.getElementById('useAlphaGradient');
+			_updateCheckBox = _updateCheckBox.bind(this, phongCheckBox, alphaGradientCheckBox);
+			phongCheckBox.addEventListener('change', _updateCheckBox, false);
+			alphaGradientCheckBox.addEventListener('change', _updateCheckBox, false);
+		}
+	};
+});
+
+

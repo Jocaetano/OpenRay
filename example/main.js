@@ -19,17 +19,19 @@ require.config({
         transferFunciton: '../transferFunction/transfer_function',
 		camera: '..	/camera/camera',
         glMatrix: '../thirdy/glMatrix/glMatrix.min',
-		raycaster: '../raycaster'
+		raycaster: '../raycaster',
+		colorPicker: 'colorPicker/color_picker',
+		gradientEditor : 'gradientEditor/gradient_editor'
 		//		volume_factory: '../dist/volume.min',
 		//		raycaster: '../dist/openray.min',
     }
 });
 
-define(['app'], function (App) {
+define(['app', 'controller'], function (App, Controller) {
 	console.log("WebGLStart");
 	var glCanvas = document.getElementById("raywebgl");
 	var gl = WebGLUtils.setupWebGL(glCanvas);
 
 	App.start(gl, glCanvas.width, glCanvas.height);
-	new Controller(App);
+	Controller.init();
 });
