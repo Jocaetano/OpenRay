@@ -1,4 +1,4 @@
-define(['volume', 'image'], function (Volume, DicomImage) {
+define(['volume', 'image', 'imageLoader'], function (Volume, DicomImage, imgLoaderWorker) {
 	'use strict';
 
 	function _C3DEImageOrderer(img1, img2) {
@@ -45,9 +45,11 @@ define(['volume', 'image'], function (Volume, DicomImage) {
 			var workers = [];
 			function wOnMessage(worker, start, end) {
 				return function (e) {
-					if (!e.data)
+					if (!e.data) {
+						worker.postMessage({url: document.location.protocol + '//' + document.location.host });
 						for (var i = start; i < end; i++)
 							worker.postMessage(imagesFiles[i]);
+					}
 					else {
 						images.push(new DicomImage(e.data[0], e.data[1]));
 						if (images.length == imagesFiles.length) {
@@ -58,11 +60,13 @@ define(['volume', 'image'], function (Volume, DicomImage) {
 				};
 			}
 			for (var i = 0; i < nWorkers - 1; i++) {
-				workers[i] = new Worker('../image/image_loader.js');
+				workers[i] = new Worker(imgLoaderWorker);
 				workers[i].onmessage = wOnMessage(workers[i], wLength * i, wLength * (i + 1));
 			}
-			workers[i] = new Worker('../image/image_loader.js');
+			workers[i] = new Worker(imgLoaderWorker);
 			workers[i].onmessage = wOnMessage(workers[i], wLength * i, imagesFiles.length);
+			
+			window.URL.revokeObjectURL(imgLoaderWorker);
 		},
 
 		createVolumefromRaw: function (fileBuffer, pixelType, volumeSize, pixelSpacing) {
