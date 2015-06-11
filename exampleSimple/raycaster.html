@@ -1,0 +1,32 @@
+<html>
+	<head>
+		<style>
+			body {
+					display: block;
+					background-color: black;
+				}
+				
+				#raywebgl {
+					background: black;
+					border: 1px solid white;
+					position: relative;
+					width: 30%;
+					left: 35%;
+				}
+		</style>
+		<title>Raycaster</title>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+		<script type="text/javascript" src="../dist/volume.min.js"></script>
+		<script type="text/javascript" src="../dist/openray.min.js"></script>
+		<script type="text/javascript" src="app.js"></script>
+	</head>
+	<body onload="main()">
+		<canvas id="raywebgl" width="1024" height="1024"></canvas>
+		<input type="file" id="dicomFiles" multiple style="visibility: hidden; position: absolute; top: -50; left: -50"
+		/>
+		<div id="openFile">
+			<button id="dicomButton">Load Dicom Volume</button>
+		</div>
+	</body>
+
+</html>
