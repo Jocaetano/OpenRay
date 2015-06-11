@@ -1,4 +1,11 @@
-define(function () {
+(function (root, factory) {
+	if (typeof define === 'function' && define.amd)
+		define(factory);
+	else
+		º.ImageLoaderWorker = factory();
+} (this,
+
+	function () {
 	'use strict';
 
 	var workerBlobURL = URL.createObjectURL(new Blob(['(' +
@@ -142,4 +149,4 @@ define(function () {
 		+ ')()'], { type: 'application/javascript' }));
 
 	return workerBlobURL;
-});
+}));

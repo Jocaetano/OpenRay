@@ -1,172 +1,179 @@
-define(['glShader'], function (GLShader) {
-	'use strict';
+(function (root, factory) {
+	if (typeof define === 'function' && define.amd)
+		define(['glShader'], factory);
+	else
+		º.GLProgram = factory(º.GLShader);
+} (this,
 
-	function GLProgram(glContext) {
-		this._gl = glContext;
-		this.program = this._gl.createProgram();
-		this.vertexShader = new GLShader(glContext, this._gl.VERTEX_SHADER);
-		this.fragShader = new GLShader(glContext, this._gl.FRAGMENT_SHADER);
-		this.attributes = {};
-		this.uniforms = {};
-	}
+	function (GLShader) {
+		'use strict';
 
-	GLProgram.prototype = {
+		function GLProgram(glContext) {
+			this._gl = glContext;
+			this.program = this._gl.createProgram();
+			this.vertexShader = new GLShader(glContext, this._gl.VERTEX_SHADER);
+			this.fragShader = new GLShader(glContext, this._gl.FRAGMENT_SHADER);
+			this.attributes = {};
+			this.uniforms = {};
+		}
 
-		loadFragmentShader: function (url) {
-			this.fragShader.loadShaderFromURL(url);
-		},
+		GLProgram.prototype = {
 
-		loadVertexShader: function (url) {
-			this.vertexShader.loadShaderFromURL(url);
-		},
+			loadFragmentShader: function (url) {
+				this.fragShader.loadShaderFromURL(url);
+			},
 
-		addExtraCodeFragment: function (code) {
-			this.fragShader.addExtraCode(code);
-		},
+			loadVertexShader: function (url) {
+				this.vertexShader.loadShaderFromURL(url);
+			},
 
-		addExtraCodeVertex: function (code) {
-			this.vertexShader.addExtraCode(code);
-		},
+			addExtraCodeFragment: function (code) {
+				this.fragShader.addExtraCode(code);
+			},
 
-		addDirectiveFragment: function (directive) {
-			this.fragShader.addDirective(directive);
-		},
+			addExtraCodeVertex: function (code) {
+				this.vertexShader.addExtraCode(code);
+			},
 
-		addDirectiveVertex: function (directive) {
-			this.vertexShader.addDirective(directive);
-		},
+			addDirectiveFragment: function (directive) {
+				this.fragShader.addDirective(directive);
+			},
 
-		compileFragmentShader: function () {
-			this.fragShader.compile();
-		},
+			addDirectiveVertex: function (directive) {
+				this.vertexShader.addDirective(directive);
+			},
 
-		compileVertexShader: function () {
-			this.vertexShader.compile();
-		},
+			compileFragmentShader: function () {
+				this.fragShader.compile();
+			},
 
-		addAttribute: function (attribute) {
-			var attribLocation = this._gl.getAttribLocation(this.program, attribute);
-			this._gl.enableVertexAttribArray(attribLocation);
-			return attribLocation;
-		},
+			compileVertexShader: function () {
+				this.vertexShader.compile();
+			},
 
-		vertexAttribPointer: function (attributeName, size, glType) {
-			var attribute;
-			if (attributeName) {
-				attribute = this.attributes[attributeName];
-				this._gl.vertexAttribPointer(attribute.location, size, glType, false, 0, 0);
-			} else
-				for (var attributeName in this.attributes) {
+			addAttribute: function (attribute) {
+				var attribLocation = this._gl.getAttribLocation(this.program, attribute);
+				this._gl.enableVertexAttribArray(attribLocation);
+				return attribLocation;
+			},
+
+			vertexAttribPointer: function (attributeName, size, glType) {
+				var attribute;
+				if (attributeName) {
 					attribute = this.attributes[attributeName];
+					this._gl.vertexAttribPointer(attribute.location, size, glType, false, 0, 0);
+				} else
+					for (var attributeName in this.attributes) {
+						attribute = this.attributes[attributeName];
+						this._gl.bindBuffer(this._gl.ARRAY_BUFFER, attribute.buffer);
+						this._gl.vertexAttribPointer(attribute.location, attribute.bufferSize, attribute.bufferType, false, 0, 0);
+					};
+			},
+
+			bindBufferToAttrib: function (buffer, size, glType, attributeName) {
+				if (!this.attributes[attributeName]) {
+					console.log("Invalid attributeName");
+					return;
+				}
+
+				this.attributes[attributeName].buffer = buffer;
+				this.attributes[attributeName].bufferSize = size;
+				this.attributes[attributeName].bufferType = glType;
+			},
+
+			addArrayBuffer: function (arraybuffer, size, glType, attributeName) {
+				if (!this.attributes[attributeName]) {
+					console.log("Invalid attributeName");
+					return;
+				}
+
+				var buffer = this._gl.createBuffer();
+				this._gl.bindBuffer(this._gl.ARRAY_BUFFER, buffer);
+				this._gl.bufferData(this._gl.ARRAY_BUFFER, arraybuffer, this._gl.STATIC_DRAW);
+
+				this.attributes[attributeName].buffer = buffer;
+				this.attributes[attributeName].bufferSize = size;
+				this.attributes[attributeName].bufferType = glType;
+
+				return buffer;
+			},
+
+			drawArrays: function (mode, first, count) {
+				for (var attributeName in this.attributes) {
+					var attribute = this.attributes[attributeName];
 					this._gl.bindBuffer(this._gl.ARRAY_BUFFER, attribute.buffer);
 					this._gl.vertexAttribPointer(attribute.location, attribute.bufferSize, attribute.bufferType, false, 0, 0);
 				};
-		},
+				this._gl.drawArrays(mode, first, count);
+			},
 
-		bindBufferToAttrib: function (buffer, size, glType, attributeName) {
-			if (!this.attributes[attributeName]) {
-				console.log("Invalid attributeName");
-				return;
-			}
+			addElementArrayBuffer: function (arraybuffer) {
+				this._gl.bindBuffer(this._gl.ELEMENT_ARRAY_BUFFER, this._gl.createBuffer());
+				this._gl.bufferData(this._gl.ELEMENT_ARRAY_BUFFER, arraybuffer, this._gl.STATIC_DRAW);
+			},
 
-			this.attributes[attributeName].buffer = buffer;
-			this.attributes[attributeName].bufferSize = size;
-			this.attributes[attributeName].bufferType = glType;
-		},
+			addUniform: function (uniform) {
+				return this._gl.getUniformLocation(this.program, uniform);
+			},
 
-		addArrayBuffer: function (arraybuffer, size, glType, attributeName) {
-			if (!this.attributes[attributeName]) {
-				console.log("Invalid attributeName");
-				return;
-			}
+			getProgram: function () {
+				return this.program;
+			},
 
-			var buffer = this._gl.createBuffer();
-			this._gl.bindBuffer(this._gl.ARRAY_BUFFER, buffer);
-			this._gl.bufferData(this._gl.ARRAY_BUFFER, arraybuffer, this._gl.STATIC_DRAW);
+			bind: function () {
+				this._gl.useProgram(this.program);
+			},
 
-			this.attributes[attributeName].buffer = buffer;
-			this.attributes[attributeName].bufferSize = size;
-			this.attributes[attributeName].bufferType = glType;
+			linkProgram: function () {
 
-			return buffer;
-		},
+				this._gl.linkProgram(this.program);
 
-		drawArrays: function (mode, first, count) {
-			for (var attributeName in this.attributes) {
-				var attribute = this.attributes[attributeName];
-				this._gl.bindBuffer(this._gl.ARRAY_BUFFER, attribute.buffer);
-				this._gl.vertexAttribPointer(attribute.location, attribute.bufferSize, attribute.bufferType, false, 0, 0);
-			};
-			this._gl.drawArrays(mode, first, count);
-		},
+				if (!this._gl.getProgramParameter(this.program, this._gl.LINK_STATUS)) {
+					console.log(this._gl.getProgramInfoLog(this.program));
+					return;
+				}
 
-		addElementArrayBuffer: function (arraybuffer) {
-			this._gl.bindBuffer(this._gl.ELEMENT_ARRAY_BUFFER, this._gl.createBuffer());
-			this._gl.bufferData(this._gl.ELEMENT_ARRAY_BUFFER, arraybuffer, this._gl.STATIC_DRAW);
-		},
+				var activeInfo;
+				var activeLocation;
+				var ii = this._gl.getProgramParameter(this.program, this._gl.ACTIVE_ATTRIBUTES);
+				for (var i = 0; i < ii; i++) {
+					activeInfo = this._gl.getActiveAttrib(this.program, i);
+					activeLocation = this._gl.getAttribLocation(this.program, activeInfo.name);
+					this._gl.enableVertexAttribArray(activeLocation);
+					this.attributes[activeInfo.name] = {
+						location: activeLocation
+					};
+				}
 
-		addUniform: function (uniform) {
-			return this._gl.getUniformLocation(this.program, uniform);
-		},
+				ii = this._gl.getProgramParameter(this.program, this._gl.ACTIVE_UNIFORMS);
+				for (i = 0; i < ii; i++) {
+					activeInfo = this._gl.getActiveUniform(this.program, i);
+					activeLocation = this._gl.getUniformLocation(this.program, activeInfo.name);
+					this.uniforms[activeInfo.name] = activeLocation;
+				}
+			},
 
-		getProgram: function () {
-			return this.program;
-		},
+			restartProgram: function () {
+				this._gl.deleteProgram(this.program);
+				this.program = this._gl.createProgram();
 
-		bind: function () {
-			this._gl.useProgram(this.program);
-		},
+				this.attachShaders();
 
-		linkProgram: function () {
+				this.linkProgram();
+			},
 
-			this._gl.linkProgram(this.program);
+			attachShaders: function () {
+				this._gl.attachShader(this.program, this.vertexShader.getShader());
+				this._gl.attachShader(this.program, this.fragShader.getShader());
+			},
 
-			if (!this._gl.getProgramParameter(this.program, this._gl.LINK_STATUS)) {
-				console.log(this._gl.getProgramInfoLog(this.program));
-				return;
-			}
-
-			var activeInfo;
-			var activeLocation;
-			var ii = this._gl.getProgramParameter(this.program, this._gl.ACTIVE_ATTRIBUTES);
-			for (var i = 0; i < ii; i++) {
-				activeInfo = this._gl.getActiveAttrib(this.program, i);
-				activeLocation = this._gl.getAttribLocation(this.program, activeInfo.name);
-				this._gl.enableVertexAttribArray(activeLocation);
-				this.attributes[activeInfo.name] = {
-					location: activeLocation
+			toJSON: function () {
+				return {
+					'vertexShader': this.vertexShader,
+					'fragShader': this.fragShader
 				};
 			}
+		};
 
-			ii = this._gl.getProgramParameter(this.program, this._gl.ACTIVE_UNIFORMS);
-			for (i = 0; i < ii; i++) {
-				activeInfo = this._gl.getActiveUniform(this.program, i);
-				activeLocation = this._gl.getUniformLocation(this.program, activeInfo.name);
-				this.uniforms[activeInfo.name] = activeLocation;
-			}
-		},
-
-		restartProgram: function () {
-			this._gl.deleteProgram(this.program);
-			this.program = this._gl.createProgram();
-
-			this.attachShaders();
-
-			this.linkProgram();
-		},
-
-		attachShaders: function () {
-			this._gl.attachShader(this.program, this.vertexShader.getShader());
-			this._gl.attachShader(this.program, this.fragShader.getShader());
-		},
-
-		toJSON: function () {
-			return {
-				'vertexShader': this.vertexShader,
-				'fragShader': this.fragShader
-			};
-		}
-	};
-
-	return GLProgram;
-});
+		return GLProgram;
+	}));

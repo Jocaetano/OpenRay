@@ -1,4 +1,10 @@
-define(['glProgram', 'fbo', 'glTexture2d', 'color', 'transferFunciton', 'camera'],
+(function (root, factory) {
+	if (typeof define === 'function' && define.amd)
+		define(['glProgram', 'fbo', 'glTexture2d', 'color', 'transferFunciton', 'camera'], factory);
+	else
+		window.openray = factory(º.GLProgram, º.FrameBufferObject, º.GLTexture2D, º.Color, º.TransferFunction, º.Camera);
+} (this,
+
 	function (GLProgram, FrameBufferObject, GLTexture2D, Color, TransferFunction, Camera) {
 		'use strict';
 	
@@ -207,7 +213,7 @@ define(['glProgram', 'fbo', 'glTexture2d', 'color', 'transferFunciton', 'camera'
 			_drawVolumeBuffer(_raycastProgram);
 
 			_resultFBO.unbind();
-			
+
 			_gl.disable(_gl.CULL_FACE);
 		}
 
@@ -503,4 +509,4 @@ define(['glProgram', 'fbo', 'glTexture2d', 'color', 'transferFunciton', 'camera'
 				};
 			}
 		};
-	});
+	}));
